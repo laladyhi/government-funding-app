@@ -85,6 +85,13 @@ def print_field_report(idx: int, program, raw_item: dict):
 
 
 def main() -> int:
+    baseline_conn = sqlite3.connect(PROJECT_ROOT / "app" / "data" / "govfunding.sqlite3")
+    baseline_total = baseline_conn.execute("SELECT COUNT(*) FROM programs").fetchone()[0]
+    baseline_pb = baseline_conn.execute(
+        "SELECT COUNT(*) FROM programs WHERE source='public_benefits'"
+    ).fetchone()[0]
+    baseline_conn.close()
+
     fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     check("fixture: _is_real_data가 false로 명시됨(가상 값 확인)", fixture.get("_is_real_data") is False)
     check("fixture: _schema_source에 '사용자 제공' 명시됨", "사용자 제공" in fixture.get("_schema_source", ""))
@@ -187,8 +194,10 @@ def main() -> int:
     prod_conn.row_factory = sqlite3.Row
     prod_total = prod_conn.execute("SELECT COUNT(*) FROM programs").fetchone()[0]
     prod_pb = prod_conn.execute("SELECT COUNT(*) FROM programs WHERE source='public_benefits'").fetchone()[0]
-    check("운영 DB의 programs 총 건수는 여전히 25건", prod_total == 25, f"실제: {prod_total}")
-    check("운영 DB에 public_benefits 데이터가 섞이지 않음", prod_pb == 0, f"실제: {prod_pb}")
+    check("운영 DB의 programs 건수가 테스트 실행 전후로 그대로임",
+          prod_total == baseline_total, f"확인 건수: {prod_total}")
+    check("운영 DB의 public_benefits 건수가 테스트 실행 전후로 그대로임",
+          prod_pb == baseline_pb, f"확인 건수: {prod_pb}")
 
     overlap_titles = []
     for program, raw_item in converted:
@@ -198,7 +207,7 @@ def main() -> int:
         ).fetchall()
         if rows:
             overlap_titles.append((program.title, [r["title"] for r in rows]))
-    check("기존 기업마당·K-Startup 25건과 제목 기준 중복 후보 없음(참고용 확인)",
+    check("기존 운영 데이터와 제목 기준 중복 후보 없음(참고용 확인)",
           len(overlap_titles) == 0, f"발견된 유사 제목: {overlap_titles}" if overlap_titles else "")
     prod_conn.close()
 

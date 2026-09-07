@@ -32,16 +32,16 @@
   <div class="note" style="margin-top:4px;">{{ p["org_name"] or "기관명 미확인" }}</div>
   <table class="fields" style="margin-top:8px;">
     <tr>
-      <td class="label">신청기간</td><td>{{ p["application_period_display"] or "정보없음" }}</td>
+      <td class="label">보조금 규모</td><td>{{ p["summary"]["amount"] | truncate_ko }}</td>
     </tr>
     <tr>
-      <td class="label">지원금액</td><td>{{ p["amount_display"] or "미추출" }}</td>
+      <td class="label">지원자격</td><td>{{ p["summary"]["eligibility"] | truncate_ko }}</td>
     </tr>
     <tr>
-      <td class="label">대상기업</td><td>{{ p["target_company_display"] or "-" }}</td>
+      <td class="label">지원기간</td><td>{{ p["summary"]["period"] | truncate_ko }}</td>
     </tr>
     <tr>
-      <td class="label">지역</td><td>{{ p["region_display"] or "지역 정보 없음" }}</td>
+      <td class="label">지원방법</td><td>{{ p["summary"]["method"] | truncate_ko }}</td>
     </tr>
   </table>
   <span class="badge badge-status">{{ p["status_computed"] | status_label }}</span>

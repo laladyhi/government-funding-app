@@ -26,11 +26,13 @@ from query import (  # noqa: E402
     STATUS_DISPLAY_LABELS,
     SOURCE_DISPLAY_LABELS,
 )
+from action_summary import build_action_summary, truncate_ko  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 app = Flask(__name__)
+app.jinja_env.filters["truncate_ko"] = truncate_ko
 
 
 OFFICIAL_SUPPORT_SOURCES = [
@@ -223,7 +225,8 @@ def program_list():
 
     query = """
         SELECT p.id, p.title, p.status_computed, p.application_period_display,
-               p.amount_display, p.target_company_display, p.region_display, p.source,
+               p.amount_display, p.target_company_display, p.region_display,
+               p.source, p.source_item_id,
                (SELECT o.name FROM program_organization_roles por
                   JOIN organizations o ON o.id = por.org_id
                   JOIN relationship_types rt ON rt.id = por.role_type_id
@@ -247,7 +250,9 @@ def program_list():
         params.append(field_filter)
     query += " ORDER BY p.id DESC"
 
-    programs = conn.execute(query, params).fetchall()
+    programs = [dict(r) for r in conn.execute(query, params).fetchall()]
+    for p in programs:
+        p["summary"] = build_action_summary(conn, p)
 
     status_options = [r["status_computed"] for r in conn.execute(
         "SELECT DISTINCT status_computed FROM programs ORDER BY status_computed"
@@ -278,9 +283,11 @@ def program_list():
 @app.route("/programs/<int:program_id>")
 def program_detail(program_id: int):
     conn = get_connection()
-    program = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
-    if not program:
+    program_row = conn.execute("SELECT * FROM programs WHERE id = ?", (program_id,)).fetchone()
+    if not program_row:
         abort(404)
+    program = dict(program_row)
+    program["summary"] = build_action_summary(conn, program)
 
     field_map = fetch_program_fields(conn, program_id)
     detail_rows = build_rows(field_map, DETAIL_FIELD_ORDER)

@@ -103,6 +103,9 @@ def main() -> int:
     # 실행 전후로 안 바뀌었는가"만 비교한다.
     baseline_conn = sqlite3.connect(PROJECT_ROOT / "app" / "data" / "govfunding.sqlite3")
     baseline_total = baseline_conn.execute("SELECT COUNT(*) FROM programs").fetchone()[0]
+    baseline_kocca = baseline_conn.execute(
+        "SELECT COUNT(*) FROM programs WHERE source = 'kocca'"
+    ).fetchone()[0]
     baseline_conn.close()
 
     conn = build_temp_db()
@@ -138,7 +141,9 @@ def main() -> int:
     ).fetchone()[0]
     check("운영 DB의 programs 건수가 테스트 실행 전후로 그대로임(하드코딩 아님)",
           prod_count == baseline_total, f"실행 전: {baseline_total}, 실행 후: {prod_count}")
-    check("운영 DB에 kocca 테스트 데이터가 섞이지 않음", fixture_titles_in_prod == 0, f"실제: {fixture_titles_in_prod}")
+    check("운영 DB의 kocca 건수가 테스트 실행 전후로 그대로임",
+          fixture_titles_in_prod == baseline_kocca,
+          f"실행 전: {baseline_kocca}, 실행 후: {fixture_titles_in_prod}")
     prod_conn.close()
 
     print()

@@ -10,10 +10,10 @@
   <div class="source-line">{{ source_labels.get(program.source, program.source) }} 공고번호: {{ program.source_item_id }}</div>
 
   <table class="fields" style="margin-top:12px;">
-    <tr><td class="label">신청기간</td><td>{{ program.application_period_display or "정보없음" }}</td></tr>
-    <tr><td class="label">지원금액</td><td>{{ program.amount_display or "미추출" }}</td></tr>
-    <tr><td class="label">대상기업</td><td>{{ program.target_company_display or "-" }}</td></tr>
-    <tr><td class="label">지역</td><td>{{ program.region_display or "지역 정보 없음" }}</td></tr>
+    <tr><td class="label">보조금 규모</td><td>{{ program.summary.amount }}</td></tr>
+    <tr><td class="label">지원자격</td><td style="white-space:pre-line;">{{ program.summary.eligibility }}</td></tr>
+    <tr><td class="label">지원기간</td><td>{{ program.summary.period }}</td></tr>
+    <tr><td class="label">지원방법</td><td style="white-space:pre-line;">{{ program.summary.method }}</td></tr>
   </table>
 
   {% if orgs %}
