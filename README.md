@@ -22,11 +22,11 @@ Open API를 통해 공개된 공고 데이터를 그대로 수집·정리해서 
 
 | 기관 | 방식 | 현재 상태 |
 |---|---|---|
-| 기업마당 (bizinfo.go.kr) | Open API | 연동 완료, 운영 DB 적재 중 |
-| 창업진흥원 (K-Startup) | Open API (data.go.kr) | 연동 완료, 운영 DB 적재 중 |
-| 정부24 공공서비스(혜택) | Open API (odcloud.kr) | 연동 완료, 실 호출 검증됨 (운영 DB 적재 전) |
-| 중소벤처기업진흥공단 (KOSMES) | Open API 예정 | 연동 후보 (키 발급 전) |
-| 한국콘텐츠진흥원 (KOCCA) | Open API 예정 | **승인 대기** — 키 미발급, 어댑터 코드만 준비됨 |
+| 기업마당 (bizinfo.go.kr) | Open API | 연동 완료, 운영 DB 20건 적재 |
+| 창업진흥원 (K-Startup) | Open API (data.go.kr) | 연동 완료, 운영 DB 5건 적재 |
+| 정부24 공공서비스(혜택) | Open API (odcloud.kr) | 연동 완료, 실제 호출·운영 DB 적재 완료 (5건) |
+| 중소벤처기업진흥공단 (KOSMES) | Open API 예정 | 연동 후보 (요청 명세 미확인) |
+| 한국콘텐츠진흥원 (KOCCA) | Open API | 연동 완료, 실제 호출·운영 DB 적재 완료 (4건) |
 | 국민체육진흥공단 (KSPO) | Open API 예정 | 연동 후보 (키 발급 전) |
 | 한국관광공사 / 영화진흥위원회 | 게시판 | 링크만 관리 (자동 수집 없음) |
 

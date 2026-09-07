@@ -1,5 +1,10 @@
 # Phase 1 데이터 출처 확정
 
+> 참고: 이 문서는 2026-09-04의 초기 출처 결정 기록입니다. 이후
+> 한국콘텐츠진흥원(KOCCA)과 정부24 공공서비스(혜택)는 공식 API 확인과
+> 실제 테스트를 거쳐 연동 및 운영 DB 적재가 완료되었습니다. 현재 상태는
+> `README.md`와 `docs/continuation-plan-2026-09-07.md`를 기준으로 합니다.
+
 **결정일**: 2026-09-04
 **결정**: 기업마당(bizinfo.go.kr) API를 Phase 1의 기본(유일한) 데이터
 출처로 확정한다. 근거: [agency-coverage-survey.md](agency-coverage-survey.md)
