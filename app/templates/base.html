@@ -59,14 +59,18 @@
 <body>
   <header>
     <span class="brand">Government Funding AI</span>
-    <a href="/programs">기업마당 연계 지원사업</a>
+    <a href="/programs">정부 지원사업</a>
     <a href="/support-sources">공식 지원금 찾기</a>
   </header>
   <div class="source-banner">
-    이 목록은 <b>{{ data_source_label }}</b>에 연계(등록)된 지원사업만 보여줍니다.
-    "정부의 모든 지원사업"이 아닙니다 — 기업마당에 참여하지 않았거나
-    반영이 지연된 기관의 공고는 이 화면에 없을 수 있습니다.
-    (기업마당 수집 기준일: <b>{{ collection_reference_at }}</b>)
+    이 목록은 현재 연계된 여러 정부·공공기관 출처의 지원사업을 모아 보여줍니다.
+    "정부의 모든 지원사업"이 아닙니다 — 아직 연계되지 않았거나 반영이 지연된
+    기관의 공고는 이 화면에 없을 수 있습니다. 출처별 현황:
+    <ul style="margin:4px 0 0; padding-left:18px;">
+      {% for s in source_summaries %}
+      <li>{{ s.label }}: {{ s.count }}건 (최근 수집: {{ s.latest }})</li>
+      {% endfor %}
+    </ul>
   </div>
   <main>
     {% block content %}{% endblock %}

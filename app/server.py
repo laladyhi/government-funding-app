@@ -105,21 +105,34 @@ OFFICIAL_SUPPORT_SOURCES = [
 def inject_data_source_meta():
     """
     모든 화면에 공통으로 표시할 데이터 출처 안내.
-    "모든 정부지원사업"이라고 표시하지 않고, 이 데이터가 정확히 어디서
-    언제까지 수집된 것인지를 항상 함께 보여주기 위한 목적.
+    "모든 정부지원사업"이라고 표시하지 않고, 이 데이터가 정확히 어느
+    출처에서 언제까지 수집된 것인지 출처별로 보여주기 위한 목적.
+
+    2026-09-07: 출처가 기업마당 하나에서 4개(기업마당·K-Startup·정부24
+    공공서비스(혜택)·KOCCA)로 늘었는데, 이 안내가 여전히 기업마당 하나만
+    가리키고 있어서(문구도 "기업마당에 연계된"으로 고정, 수집 기준일도
+    raw_api_responses의 bizinfo 'page' 응답만 조회) 나머지 3개 출처
+    데이터가 실제로 있는데도 없는 것처럼 보이는 문제가 있었다. programs
+    테이블 기준으로 출처별 건수·최근 수집 시각을 전부 계산해 일반화한다.
     """
     conn = get_connection()
-    row = conn.execute(
+    rows = conn.execute(
         """
-        SELECT MAX(collected_at) AS ts FROM raw_api_responses
-        WHERE source = 'bizinfo' AND response_type = 'page'
+        SELECT source, COUNT(*) AS cnt, MAX(last_updated_at) AS latest
+        FROM programs
+        GROUP BY source
+        ORDER BY source
         """
-    ).fetchone()
-    reference_at = row["ts"] if row and row["ts"] else "확인 필요"
-    return {
-        "data_source_label": "기업마당(bizinfo.go.kr)",
-        "collection_reference_at": reference_at,
-    }
+    ).fetchall()
+    source_summaries = [
+        {
+            "label": SOURCE_DISPLAY_LABELS.get(r["source"], r["source"]),
+            "count": r["cnt"],
+            "latest": r["latest"] or "확인 필요",
+        }
+        for r in rows
+    ]
+    return {"source_summaries": source_summaries}
 
 
 def strip_html(value: str) -> str:
