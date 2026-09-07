@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}공식 지원금 찾기 — Government Funding AI{% endblock %}
+{% block content %}
+
+<h1 style="font-size:18px; margin:0 0 8px;">공식 지원금 찾기</h1>
+<p style="color:#555; margin:0 0 16px;">
+  정부·공공기관의 공식 지원금과 정책 정보를 한곳에서 찾아갈 수 있습니다.
+  자동으로 가져오는 자료와 직접 확인해야 하는 자료를 구분해 표시합니다.
+</p>
+
+{% for source in sources %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div>
+      <div style="font-weight:700; font-size:16px;">{{ source.name }}</div>
+      <div class="note">{{ source.category }}</div>
+    </div>
+    <span class="badge badge-source">{{ source.mode }}</span>
+  </div>
+  <p style="margin:10px 0 6px;">{{ source.description }}</p>
+  <div class="note">{{ source.note }}</div>
+  <div style="margin-top:10px;">
+    <a class="btn" href="{{ source.url }}" target="_blank" rel="noopener">공식 사이트 열기 →</a>
+  </div>
+</div>
+{% endfor %}
+
+<div class="card" style="background:#fff8e1; border-color:#f0dfa1;">
+  <strong>참고</strong>
+  <p style="margin:6px 0 0; color:#6b5300;">
+    이 화면은 지원 가능성을 참고하는 출발점입니다. 최종 지원 여부는 각 사업의
+    공고문과 담당 기관 심사를 기준으로 결정됩니다.
+  </p>
+</div>
+
+{% endblock %}

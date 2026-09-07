@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Government Funding AI{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      margin: 0; background: #f5f6f8; color: #1a1a1a; line-height: 1.6;
+    }
+    header {
+      background: #1f2937; color: #fff; padding: 14px 24px;
+      display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+    }
+    header a { color: #fff; text-decoration: none; font-size: 14px; }
+    header .brand { font-weight: bold; font-size: 16px; margin-right: 12px; }
+    main { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+    .card {
+      background: #fff; border: 1px solid #e2e4e8; border-radius: 8px;
+      padding: 16px; margin-bottom: 12px;
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 12px; font-weight: 600;
+    }
+    .badge-fact { background: #e6f4ea; color: #1e7e34; }
+    .badge-ai { background: #fff4e5; color: #b25e00; }
+    .badge-guess { background: #f0e9ff; color: #6c3fc5; }
+    .badge-missing { background: #f1f2f4; color: #6b7280; }
+    .badge-status { background: #e7eefc; color: #1d4ed8; }
+    .badge-source { background: #e6f7f3; color: #0d6b52; }
+    a.btn {
+      display: inline-block; padding: 6px 12px; border: 1px solid #cbd2d9;
+      border-radius: 6px; text-decoration: none; color: #1a1a1a; font-size: 13px;
+      background: #fff;
+    }
+    a.btn:hover { background: #f0f1f3; }
+    .source-banner {
+      background: #fff8e1; border-bottom: 1px solid #f0dfa1; color: #6b5300;
+      font-size: 13px; padding: 8px 24px; line-height: 1.5;
+    }
+    .source-banner b { color: #4a3a00; }
+    table.fields { width: 100%; border-collapse: collapse; }
+    table.fields td { padding: 8px 4px; vertical-align: top; border-bottom: 1px solid #eee; }
+    table.fields td.label { width: 140px; color: #555; font-weight: 600; white-space: nowrap; }
+    .source-line { font-size: 12px; color: #777; margin-top: 4px; }
+    .note { font-size: 12px; color: #999; margin-top: 4px; }
+    form.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    form.filters input, form.filters select {
+      padding: 6px 8px; border: 1px solid #cbd2d9; border-radius: 6px; font-size: 14px;
+    }
+    form.filters button {
+      padding: 6px 14px; border-radius: 6px; border: none; background: #1d4ed8; color: #fff;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Government Funding AI</span>
+    <a href="/programs">기업마당 연계 지원사업</a>
+    <a href="/support-sources">공식 지원금 찾기</a>
+  </header>
+  <div class="source-banner">
+    이 목록은 <b>{{ data_source_label }}</b>에 연계(등록)된 지원사업만 보여줍니다.
+    "정부의 모든 지원사업"이 아닙니다 — 기업마당에 참여하지 않았거나
+    반영이 지연된 기관의 공고는 이 화면에 없을 수 있습니다.
+    (기업마당 수집 기준일: <b>{{ collection_reference_at }}</b>)
+  </div>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

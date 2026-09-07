@@ -1,0 +1,38 @@
+{
+  "_fixture_notice": "이 파일은 실제 한국콘텐츠진흥원 API 응답이 아닙니다. 서비스키 승인 전, 어댑터/로더 코드를 테스트하기 위해 만든 가상(mock) 데이터입니다. 실제 필드명과 다를 수 있습니다 — 승인 후 반드시 실제 응답과 대조하세요.",
+  "_is_real_data": false,
+  "_created_at": "2026-09-04",
+  "_field_name_source": "collector/adapters/kocca_adapter.py의 ASSUMED_FIELDS (추정값)",
+  "items": [
+    {
+      "pblancNo": "KOCCA-FIXTURE-001",
+      "pblancTitle": "[가상데이터] 2026년 테스트용 콘텐츠 제작지원 사업 공고",
+      "category": "콘텐츠제작",
+      "regDate": "2026-09-01",
+      "pblancUrl": "https://example-fixture.invalid/kocca/FIXTURE-001",
+      "rcptStartDate": "2026-09-10",
+      "rcptEndDate": "2026-10-10",
+      "content": "이 내용은 테스트를 위해 만든 가상의 사업 설명입니다. 실제 사업이 아닙니다."
+    },
+    {
+      "pblancNo": "KOCCA-FIXTURE-002",
+      "pblancTitle": "[가상데이터] 상시접수형 테스트 공고 (날짜 없음 케이스)",
+      "category": "수출지원",
+      "regDate": "2026-09-02",
+      "pblancUrl": "https://example-fixture.invalid/kocca/FIXTURE-002",
+      "rcptStartDate": "",
+      "rcptEndDate": "",
+      "content": "접수기간이 비어있는 경우를 테스트하기 위한 가상 데이터입니다. 날짜를 억지로 만들면 안 된다는 규칙을 검증합니다."
+    },
+    {
+      "pblancNo": "KOCCA-FIXTURE-001",
+      "pblancTitle": "[가상데이터] 2026년 테스트용 콘텐츠 제작지원 사업 공고",
+      "category": "콘텐츠제작",
+      "regDate": "2026-09-01",
+      "pblancUrl": "https://example-fixture.invalid/kocca/FIXTURE-001",
+      "rcptStartDate": "2026-09-10",
+      "rcptEndDate": "2026-10-10",
+      "content": "이 내용은 테스트를 위해 만든 가상의 사업 설명입니다. 실제 사업이 아닙니다."
+    }
+  ]
+}

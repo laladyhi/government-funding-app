@@ -1,0 +1,46 @@
+# 절대 커밋되면 안 되는 비밀 정보 (API 키 등)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# 로컬 전용 도구 설정 (개인 컴퓨터 경로 등이 들어있음 — 공개 저장소에 불필요)
+.claude/settings.local.json
+
+# 운영 DB 및 백업 (실제 수집 데이터 포함 — 코드만 공개하고 DB는 각자 로컬에서 생성)
+app/data/*.sqlite3
+app/data/backups/
+
+# 실제 API에서 받아온 원본/가공 데이터 (민감정보는 아니지만, 실제 수집
+# 시점의 데이터라 공개 저장소에는 올리지 않는다 — 코드만으로 재현 가능)
+collector/raw/
+collector/mapped/
+collector/sample_response.json
+collector/sample_kstartup_response.json
+collector/sample_public_benefits_response.json
+collector/fixtures/*_real_*.json
+
+# 실행 중 자동 생성되는 오류 로그 (URL, 응답코드 등 운영 정보 포함)
+collector/logs/*.jsonl
+
+# 저작권이 있는 외부 기관 배포 문서(발급 가이드 등) — 재배포 범위 밖
+# 주의: [ ]는 gitignore에서 문자 클래스로 해석되므로 반드시 이스케이프해야
+# 폴더명 그대로("[가이드]...")를 리터럴로 매칭한다.
+/\[가이드\]*/
+
+# 나중에 Node.js 기반으로 개발 시작하면 자동으로 무시되어야 하는 것들
+node_modules/
+.next/
+dist/
+build/
+
+# 나중에 Python 수집기 개발 시작하면 자동으로 무시되어야 하는 것들
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS/에디터 관련
+.DS_Store
+Thumbs.db

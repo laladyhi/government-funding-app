@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}기업마당 연계 지원사업 목록 — Government Funding AI{% endblock %}
+{% block content %}
+
+<h1 style="font-size:18px; margin:0 0 12px;">기업마당 연계 지원사업 목록</h1>
+
+<form class="filters" method="get" action="/programs">
+  <input type="text" name="q" placeholder="예) 로봇, 해외진출..." value="{{ keyword }}" style="flex:1; min-width:180px;">
+  <select name="status">
+    <option value="">공고상태 전체</option>
+    {% for s in status_options %}
+      <option value="{{ s }}" {% if s == status_filter %}selected{% endif %}>{{ s | status_label }}</option>
+    {% endfor %}
+  </select>
+  <select name="field">
+    <option value="">지원분야 전체</option>
+    {% for f in field_options %}
+      <option value="{{ f }}" {% if f == field_filter %}selected{% endif %}>{{ f }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">검색</button>
+  <a class="btn" href="/programs">필터 초기화</a>
+</form>
+
+<p style="color:#555; margin: 0 0 12px;">총 {{ total }}건</p>
+
+{% for p in programs %}
+<div class="card">
+  <a href="/programs/{{ p['id'] }}" style="font-weight:600; font-size:15px; text-decoration:none; color:#111;">
+    {{ p["title"] }}
+  </a>
+  <div class="note" style="margin-top:4px;">{{ p["org_name"] or "기관명 미확인" }}</div>
+  <table class="fields" style="margin-top:8px;">
+    <tr>
+      <td class="label">신청기간</td><td>{{ p["application_period_display"] or "정보없음" }}</td>
+    </tr>
+    <tr>
+      <td class="label">지원금액</td><td>{{ p["amount_display"] or "미추출" }}</td>
+    </tr>
+    <tr>
+      <td class="label">대상기업</td><td>{{ p["target_company_display"] or "-" }}</td>
+    </tr>
+    <tr>
+      <td class="label">지역</td><td>{{ p["region_display"] or "지역 정보 없음" }}</td>
+    </tr>
+  </table>
+  <span class="badge badge-status">{{ p["status_computed"] | status_label }}</span>
+  <span class="badge badge-source">출처: 기업마당</span>
+  <div style="margin-top:8px;"><a class="btn" href="/programs/{{ p['id'] }}">상세보기 →</a></div>
+</div>
+{% else %}
+<p>조건에 맞는 지원사업이 없습니다.</p>
+{% endfor %}
+
+{% endblock %}

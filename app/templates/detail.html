@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}{{ program.title }} — Government Funding AI{% endblock %}
+{% block content %}
+
+<a class="btn" href="/programs">&larr; 목록으로</a>
+
+<div class="card" style="margin-top:12px;">
+  <h1 style="font-size:20px; margin:0 0 6px;">{{ program.title }}</h1>
+  <span class="badge badge-status">{{ program.status_computed | status_label }}</span>
+  <div class="source-line">기업마당 공고번호: {{ program.source_item_id }}</div>
+
+  <table class="fields" style="margin-top:12px;">
+    <tr><td class="label">신청기간</td><td>{{ program.application_period_display or "정보없음" }}</td></tr>
+    <tr><td class="label">지원금액</td><td>{{ program.amount_display or "미추출" }}</td></tr>
+    <tr><td class="label">대상기업</td><td>{{ program.target_company_display or "-" }}</td></tr>
+    <tr><td class="label">지역</td><td>{{ program.region_display or "지역 정보 없음" }}</td></tr>
+  </table>
+
+  {% if orgs %}
+  <div class="note" style="margin-top:8px;">
+    관련 기관:
+    {% for o in orgs %}
+      {{ o["name"] }}({{ o["role"] }}){% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{% if webpage_doc %}
+<div class="card">
+  <strong>원문 공고 및 첨부파일 확인</strong>
+  <table class="fields" style="margin-top:8px;">
+    <tr>
+      <td class="label">원문 공고</td>
+      <td><a class="btn" href="{{ webpage_doc['url'] }}" target="_blank" rel="noopener">원문 열기 →</a></td>
+    </tr>
+    {% for f in attachments %}
+    <tr>
+      <td class="label">{% if loop.first %}첨부파일{% endif %}</td>
+      <td><a href="{{ f['url'] }}" target="_blank" rel="noopener">{{ f['name'] }}</a></td>
+    </tr>
+    {% endfor %}
+    <tr>
+      <td class="label">수집일</td>
+      <td>{{ webpage_doc["collected_at"] }}</td>
+    </tr>
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <strong>핵심 세부 항목</strong>
+  <table class="fields" style="margin-top:8px;">
+    {% for row in detail_rows %}
+    <tr>
+      <td class="label">{{ row.label }}</td>
+      <td>
+        <span class="badge {{ row.confirmation | confirmation_badge_class }}">{{ row.confirmation | confirmation_label }}</span>
+        <div>
+          {% if row.value %}
+            {% if row.label == "지원 내용" %}
+              <div style="white-space:pre-line;">{{ row.value | strip_html }}</div>
+            {% else %}
+              {{ row.value }}
+            {% endif %}
+          {% else %}
+            <span style="color:#999;">(값 없음)</span>
+          {% endif %}
+        </div>
+        {% if row.note %}<div class="note">{{ row.note }}</div>{% endif %}
+        {% if row.source_url %}
+          <div class="source-line">
+            출처: <a href="{{ row.source_url }}" target="_blank" rel="noopener">원문 열기</a>
+            {% if row.collected_at %} · 수집일 {{ row.collected_at }}{% endif %}
+          </div>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <strong>그 외 확인된 정보</strong>
+  <table class="fields" style="margin-top:8px;">
+    {% for row in extra_rows %}
+    <tr>
+      <td class="label">{{ row.label }}</td>
+      <td>
+        <span class="badge {{ row.confirmation | confirmation_badge_class }}">{{ row.confirmation | confirmation_label }}</span>
+        <div>
+          {% if row.value %}
+            {{ row.value }}
+          {% elif row.label == "지역" %}
+            <span style="color:#999;">지역 정보 없음</span>
+          {% else %}
+            <span style="color:#999;">(값 없음)</span>
+          {% endif %}
+        </div>
+        {% if row.note %}<div class="note">{{ row.note }}</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% endblock %}

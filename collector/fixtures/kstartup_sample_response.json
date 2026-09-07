@@ -1,0 +1,38 @@
+{
+  "_fixture_notice": "[SUPERSEDED 2026-09-04] 이 파일은 실제 키 발급 전 만든 가상(mock) 데이터이며, 필드명이 실제 API와 다릅니다(camelCase 추정 vs 실제 snake_case). 더 이상 kstartup_adapter.py가 이 필드명을 쓰지 않습니다. 실제 응답 기준 fixture는 kstartup_real_sample_20260904.json을 사용하세요. 이 파일은 과거 기록 보존 목적으로만 남겨둡니다.",
+  "_is_real_data": false,
+  "_created_at": "2026-09-04",
+  "_field_name_source": "[구버전, 더 이상 사용 안 함] collector/adapters/kstartup_adapter.py의 과거 ASSUMED_FIELDS (추정값)",
+  "items": [
+    {
+      "pbancSn": "KSTARTUP-FIXTURE-001",
+      "bizPbancNm": "[가상데이터] 2026년 테스트용 초기창업패키지 모집 공고",
+      "sprvInstNm": "창업진흥원",
+      "pbancRcptBgngDt": "2026-09-05",
+      "pbancRcptEndDt": "2026-09-25",
+      "trgetNm": "예비창업자",
+      "pbancCtnt": "이 내용은 테스트를 위해 만든 가상의 사업 설명입니다. 실제 사업이 아닙니다.",
+      "detlPgUrl": "https://example-fixture.invalid/kstartup/FIXTURE-001"
+    },
+    {
+      "pbancSn": "KSTARTUP-FIXTURE-002",
+      "bizPbancNm": "[가상데이터] 예산 소진 시까지 접수하는 테스트 공고",
+      "sprvInstNm": "창업진흥원",
+      "pbancRcptBgngDt": "",
+      "pbancRcptEndDt": "",
+      "trgetNm": "중소기업",
+      "pbancCtnt": "접수기간이 비어있는 경우(상시/예산소진형)를 테스트하기 위한 가상 데이터입니다.",
+      "detlPgUrl": "https://example-fixture.invalid/kstartup/FIXTURE-002"
+    },
+    {
+      "pbancSn": "KSTARTUP-FIXTURE-001",
+      "bizPbancNm": "[가상데이터] 2026년 테스트용 초기창업패키지 모집 공고",
+      "sprvInstNm": "창업진흥원",
+      "pbancRcptBgngDt": "2026-09-05",
+      "pbancRcptEndDt": "2026-09-25",
+      "trgetNm": "예비창업자",
+      "pbancCtnt": "이 내용은 테스트를 위해 만든 가상의 사업 설명입니다. 실제 사업이 아닙니다.",
+      "detlPgUrl": "https://example-fixture.invalid/kstartup/FIXTURE-001"
+    }
+  ]
+}
