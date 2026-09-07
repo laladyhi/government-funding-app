@@ -45,7 +45,7 @@
     </tr>
   </table>
   <span class="badge badge-status">{{ p["status_computed"] | status_label }}</span>
-  <span class="badge badge-source">출처: 기업마당</span>
+  <span class="badge badge-source">출처: {{ source_labels.get(p["source"], p["source"]) }}</span>
   <div style="margin-top:8px;"><a class="btn" href="/programs/{{ p['id'] }}">상세보기 →</a></div>
 </div>
 {% else %}

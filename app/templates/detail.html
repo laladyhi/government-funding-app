@@ -7,7 +7,7 @@
 <div class="card" style="margin-top:12px;">
   <h1 style="font-size:20px; margin:0 0 6px;">{{ program.title }}</h1>
   <span class="badge badge-status">{{ program.status_computed | status_label }}</span>
-  <div class="source-line">기업마당 공고번호: {{ program.source_item_id }}</div>
+  <div class="source-line">{{ source_labels.get(program.source, program.source) }} 공고번호: {{ program.source_item_id }}</div>
 
   <table class="fields" style="margin-top:12px;">
     <tr><td class="label">신청기간</td><td>{{ program.application_period_display or "정보없음" }}</td></tr>

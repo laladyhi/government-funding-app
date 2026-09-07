@@ -19,15 +19,20 @@ collector/mapped/
 collector/sample_response.json
 collector/sample_kstartup_response.json
 collector/sample_public_benefits_response.json
+collector/sample_kocca_response.json
 collector/fixtures/*_real_*.json
 
 # 실행 중 자동 생성되는 오류 로그 (URL, 응답코드 등 운영 정보 포함)
 collector/logs/*.jsonl
 
-# 저작권이 있는 외부 기관 배포 문서(발급 가이드 등) — 재배포 범위 밖
+# 저작권이 있는 외부 기관 배포 문서(발급 가이드, API 명세서 PDF 등) — 재배포 범위 밖
 # 주의: [ ]는 gitignore에서 문자 클래스로 해석되므로 반드시 이스케이프해야
 # 폴더명 그대로("[가이드]...")를 리터럴로 매칭한다.
 /\[가이드\]*/
+/한국콘텐츠진흥원_지원사업_API_명세서.pdf
+
+# PDF 도구가 페이지를 이미지로 렌더링하며 만든 임시 산출물(프로젝트 파일 아님)
+/tmp/
 
 # 나중에 Node.js 기반으로 개발 시작하면 자동으로 무시되어야 하는 것들
 node_modules/

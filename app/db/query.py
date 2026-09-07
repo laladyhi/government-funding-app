@@ -57,6 +57,18 @@ CONFIRMATION_BADGE_CLASS = {
     "추정": "badge-guess",
 }
 
+# programs.source(내부 키) -> 화면에 보여줄 출처 배지 문구.
+# 2026-09-07 발견: list.html/detail.html이 이 매핑 없이 "기업마당"을
+# 하드코딩하고 있어서, K-Startup 출처 레코드도 화면에는 "기업마당"으로
+# 잘못 표시되고 있었다(데이터 자체는 정상, 표시만 틀림). 정부24 공공서비스
+# (혜택)를 붙이면서 이 매핑으로 일반화해 세 출처 모두 올바르게 표시한다.
+SOURCE_DISPLAY_LABELS = {
+    "bizinfo": "기업마당",
+    "kstartup": "창업진흥원(K-Startup)",
+    "public_benefits": "정부24 혜택",
+    "kocca": "한국콘텐츠진흥원",
+}
+
 # programs.status_computed에 저장된 내부 값 중, 사용자에게는 더 쉬운
 # 말로 바꿔 보여줘야 하는 것들. 저장된 값 자체(필터링에 쓰이는 값)는
 # 바꾸지 않고 화면 표시만 바꾼다.
