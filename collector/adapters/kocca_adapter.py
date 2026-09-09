@@ -119,7 +119,13 @@ class KoccaAdapter(SourceAdapter):
         if end_dt:
             params["endDt"] = end_dt
 
-        data = self._get(params)
+        data = self.fetch_list_response(
+            page=page,
+            page_size=page_size,
+            cate=cate,
+            start_dt=start_dt,
+            end_dt=end_dt,
+        )
         if not data:
             return []
 
@@ -133,6 +139,24 @@ class KoccaAdapter(SourceAdapter):
             )
             return []
         return info.get("list", [])
+
+    def fetch_list_response(
+        self,
+        page: int = 1,
+        page_size: int = 10,
+        cate: Optional[str] = None,
+        start_dt: Optional[str] = None,
+        end_dt: Optional[str] = None,
+    ) -> Optional[dict]:
+        """페이지 메타데이터(listCount)를 포함한 원문 응답을 반환한다."""
+        params = {"pageNo": page, "numOfRows": page_size}
+        if cate:
+            params["cate"] = cate
+        if start_dt:
+            params["startDt"] = start_dt
+        if end_dt:
+            params["endDt"] = end_dt
+        return self._get(params)
 
     def to_standard_program(self, raw_item: dict) -> StandardProgram:
         f = REAL_FIELDS

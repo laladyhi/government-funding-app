@@ -144,10 +144,15 @@ class PublicBenefitsAdapter(SourceAdapter):
         params = {"page": page, "perPage": page_size, "returnType": "JSON"}
         if cond:
             params.update(cond)
-        data = self._get(LIST_URL, params)
-        if not data:
-            return []
-        return data.get("data", [])
+        data = self.fetch_list_response(page=page, page_size=page_size, cond=cond)
+        return data.get("data", []) if data else []
+
+    def fetch_list_response(self, page: int = 1, page_size: int = 10, cond: Optional[dict] = None) -> Optional[dict]:
+        """목록 원문 응답을 반환한다(페이지 메타데이터 확인·원본 보존용)."""
+        params = {"page": page, "perPage": page_size, "returnType": "JSON"}
+        if cond:
+            params.update(cond)
+        return self._get(LIST_URL, params)
 
     def fetch_detail(self, service_id: str) -> Optional[dict]:
         """상세 조회 (serviceDetail) — 서비스ID 하나에 대한 상세 레코드."""

@@ -10,6 +10,7 @@ Government Funding AI — Phase 1 로컬 웹 서버 (Flask).
   /programs/<id>          -> 상세 (화면설계 문서 2번, 원문/첨부파일 섹션 포함)
 """
 
+import math
 import re
 import sys
 from pathlib import Path
@@ -33,6 +34,8 @@ if hasattr(sys.stdout, "reconfigure"):
 
 app = Flask(__name__)
 app.jinja_env.filters["truncate_ko"] = truncate_ko
+
+PAGE_SIZE = 20
 
 
 OFFICIAL_SUPPORT_SOURCES = [
@@ -99,6 +102,14 @@ OFFICIAL_SUPPORT_SOURCES = [
         "mode": "연결 준비",
         "description": "정부기관별 공개 API와 데이터 이용 안내를 찾을 수 있습니다.",
         "note": "공식 API와 서비스키가 확인된 출처만 자동 수집 대상으로 추가합니다.",
+    },
+    {
+        "name": "e나라도움·보조금통합포털",
+        "category": "국고보조금·공모사업",
+        "url": "https://www.bojo.go.kr/bojo.do",
+        "mode": "연결 준비",
+        "description": "국고보조사업 공모·지원정보를 확인할 수 있는 공식 포털입니다.",
+        "note": "공식 API 승인 및 명세 확인 후 자동 수집 대상으로 추가합니다.",
     },
 ]
 
@@ -222,8 +233,39 @@ def program_list():
     keyword = request.args.get("q", "").strip()
     status_filter = request.args.get("status", "").strip()
     field_filter = request.args.get("field", "").strip()
+    source_filter = request.args.get("source", "").strip()
 
-    query = """
+    where_clause = "1=1"
+    params = []
+    if keyword:
+        where_clause += " AND p.title LIKE ?"
+        params.append(f"%{keyword}%")
+    if status_filter:
+        where_clause += " AND p.status_computed = ?"
+        params.append(status_filter)
+    if field_filter:
+        where_clause += """ AND p.id IN (
+            SELECT pc.program_id FROM program_classifications pc
+            JOIN classification_nodes cn ON cn.id = pc.node_id
+            WHERE cn.display_name = ?
+        )"""
+        params.append(field_filter)
+    if source_filter:
+        where_clause += " AND p.source = ?"
+        params.append(source_filter)
+
+    # 출처가 4개→5개로 늘면서 전체 건수가 1,500건을 훌쩍 넘겨(기업마당
+    # 전체 수집 이후) 한 페이지에 전부 렌더링하면 화면이 지나치게
+    # 길어지고 무거워졌다 — 페이지당 PAGE_SIZE(20)건만 보여준다.
+    total_count = conn.execute(
+        f"SELECT COUNT(*) FROM programs p WHERE {where_clause}", params
+    ).fetchone()[0]
+    total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
+    page = request.args.get("page", 1, type=int) or 1
+    page = min(max(page, 1), total_pages)
+    offset = (page - 1) * PAGE_SIZE
+
+    query = f"""
         SELECT p.id, p.title, p.status_computed, p.application_period_display,
                p.amount_display, p.target_company_display, p.region_display,
                p.source, p.source_item_id,
@@ -232,25 +274,11 @@ def program_list():
                   JOIN relationship_types rt ON rt.id = por.role_type_id
                   WHERE por.program_id = p.id AND rt.name = '주관' LIMIT 1) AS org_name
         FROM programs p
-        WHERE 1=1
+        WHERE {where_clause}
+        ORDER BY p.id DESC
+        LIMIT ? OFFSET ?
     """
-    params = []
-    if keyword:
-        query += " AND p.title LIKE ?"
-        params.append(f"%{keyword}%")
-    if status_filter:
-        query += " AND p.status_computed = ?"
-        params.append(status_filter)
-    if field_filter:
-        query += """ AND p.id IN (
-            SELECT pc.program_id FROM program_classifications pc
-            JOIN classification_nodes cn ON cn.id = pc.node_id
-            WHERE cn.display_name = ?
-        )"""
-        params.append(field_filter)
-    query += " ORDER BY p.id DESC"
-
-    programs = [dict(r) for r in conn.execute(query, params).fetchall()]
+    programs = [dict(r) for r in conn.execute(query, params + [PAGE_SIZE, offset]).fetchall()]
     for p in programs:
         p["summary"] = build_action_summary(conn, p)
 
@@ -266,6 +294,9 @@ def program_list():
         ORDER BY cn.display_name
         """
     ).fetchall()]
+    source_options = [r["source"] for r in conn.execute(
+        "SELECT DISTINCT source FROM programs ORDER BY source"
+    ).fetchall()]
 
     return render_template(
         "list.html",
@@ -273,9 +304,14 @@ def program_list():
         keyword=keyword,
         status_filter=status_filter,
         field_filter=field_filter,
+        source_filter=source_filter,
         status_options=status_options,
         field_options=field_options,
-        total=len(programs),
+        source_options=source_options,
+        total=total_count,
+        page=page,
+        total_pages=total_pages,
+        page_size=PAGE_SIZE,
         source_labels=SOURCE_DISPLAY_LABELS,
     )
 

@@ -70,6 +70,7 @@ SOURCE_DISPLAY_LABELS = {
     "kstartup": "창업진흥원(K-Startup)",
     "public_benefits": "정부24 혜택",
     "kocca": "한국콘텐츠진흥원",
+    "enara": "e나라도움 국고보조금",
 }
 
 # programs.status_computed에 저장된 내부 값 중, 사용자에게는 더 쉬운

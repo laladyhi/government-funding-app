@@ -1,5 +1,6 @@
 """
-목록/상세 화면에 "보조금 규모 / 지원자격 / 지원기간 / 지원방법" 4줄 요약을
+목록/상세 화면에 "보조금 규모 / 신청대상 / 제외대상 / 창업업력 /
+지원기간 / 지원방법" 요약을
 보여주기 위한 헬퍼.
 
 원칙:
@@ -41,6 +42,15 @@ CHECK_ORIGINAL = "공식 원문 확인 필요"
 # CHECK_ORIGINAL로 정직하게 표시한다.
 KOCCA_ELIGIBILITY_KEYWORDS = ["지원대상", "참가자격", "신청자격", "모집대상"]
 KOCCA_METHOD_KEYWORDS = ["신청방법"]
+EXCLUSION_MARKER_RE = re.compile(
+    r"(?:지원\s*제외\s*대상|신청\s*제외\s*대상|제외\s*대상|제외\s*조건|지원\s*제외)"
+)
+STARTUP_AGE_PATTERNS = [
+    re.compile(r"예비\s*창업자[^\n,;]*"),
+    re.compile(r"창업\s*후\s*[^\n.;,]+"),
+    re.compile(r"업력\s*[:：]?\s*[^\n.;,]+"),
+    re.compile(r"설립\s*일[^\n.;,]+"),
+]
 
 # K-Startup 원본의 접수채널별 필드 -> 화면에 보여줄 라벨.
 KSTARTUP_METHOD_FIELDS = [
@@ -121,15 +131,57 @@ def _find_by_keyword(sections: dict, keywords: list) -> Optional[str]:
     return None
 
 
+def _text_values(raw: Optional[dict]) -> list[str]:
+    """원본 딕셔너리의 문자열 값만 모아 검색용으로 반환한다."""
+    if not raw:
+        return []
+    return [str(value) for value in raw.values() if isinstance(value, str) and value.strip()]
+
+
+def _find_exclusion(texts: list[str]) -> Optional[str]:
+    """명시적인 제외대상/제외조건 문구만 추출한다. 없으면 추측하지 않는다."""
+    for text in texts:
+        normalized = text.replace("\\r\\n", "\n").replace("\\n", "\n")
+        lines = normalized.splitlines() or [normalized]
+        for index, line in enumerate(lines):
+            if not EXCLUSION_MARKER_RE.search(line):
+                continue
+            collected = [line.strip()]
+            for following in lines[index + 1:]:
+                stripped = following.strip()
+                if not stripped:
+                    break
+                if re.match(r"^(?:[ㅇ○◦-]\s*)?[가-힣A-Za-z][^:：]{0,30}[:：]", stripped):
+                    break
+                collected.append(stripped)
+            return " ".join(collected)
+    return None
+
+
+def _find_startup_age(texts: list[str]) -> Optional[str]:
+    """창업업력·설립일 조건을 명시한 원문만 추출한다."""
+    for text in texts:
+        normalized = text.replace("\\r\\n", "\n").replace("\\n", "\n")
+        for pattern in STARTUP_AGE_PATTERNS:
+            match = pattern.search(normalized)
+            if match:
+                return match.group(0).strip()
+    return None
+
+
 def _kocca_summary(conn, source_item_id: str) -> dict:
     raw = _fetch_raw_item(conn, "kocca", source_item_id)
     if not raw or not raw.get("content"):
-        return {"eligibility": CHECK_ORIGINAL, "method": CHECK_ORIGINAL}
+        return {"eligibility": CHECK_ORIGINAL, "excluded": CHECK_ORIGINAL,
+                "startup_age": NO_INFO, "method": CHECK_ORIGINAL}
     sections = _parse_kocca_sections(raw["content"])
     eligibility = _find_by_keyword(sections, KOCCA_ELIGIBILITY_KEYWORDS)
     method = _find_by_keyword(sections, KOCCA_METHOD_KEYWORDS)
+    texts = _text_values(raw)
     return {
         "eligibility": eligibility or CHECK_ORIGINAL,
+        "excluded": _find_exclusion(texts) or CHECK_ORIGINAL,
+        "startup_age": _find_startup_age(texts) or NO_INFO,
         "method": method or CHECK_ORIGINAL,
     }
 
@@ -140,17 +192,69 @@ def _bizinfo_summary(conn, source_item_id: str) -> dict:
     # 다르다. 2026-09-07 확인).
     raw = _fetch_raw_item(conn, "bizinfo", source_item_id)
     if not raw:
-        return {"method": CHECK_ORIGINAL}
+        return {"excluded": CHECK_ORIGINAL, "startup_age": NO_INFO,
+                "method": CHECK_ORIGINAL}
     method = raw.get("reqstMthPapersCn")
-    return {"method": method.strip() if method else NO_INFO}
+    texts = _text_values(raw)
+    return {
+        "excluded": _find_exclusion(texts) or CHECK_ORIGINAL,
+        "startup_age": _find_startup_age(texts) or NO_INFO,
+        "method": method.strip() if method else NO_INFO,
+    }
 
 
 def _public_benefits_summary(conn, source_item_id: str) -> dict:
     raw = _fetch_raw_item(conn, "public_benefits", source_item_id)
     if not raw:
-        return {"method": CHECK_ORIGINAL}
+        return {"excluded": CHECK_ORIGINAL, "startup_age": NO_INFO,
+                "method": CHECK_ORIGINAL}
     method = raw.get("신청방법")
-    return {"method": method.strip() if method else NO_INFO}
+    texts = _text_values(raw)
+    return {
+        "excluded": _find_exclusion(texts) or CHECK_ORIGINAL,
+        "startup_age": _find_startup_age(texts) or NO_INFO,
+        "method": method.strip() if method else NO_INFO,
+    }
+
+
+def _strip_cdata(value):
+    """e나라도움 원본은 XML 기반 API라, JSON으로 받아도 필드 값 안에
+    '<![CDATA[...]]>' 래퍼가 문자열째로 그대로 남아있는 경우가 있다
+    (2026-09-09 실제 저장된 원본에서 확인 — GOVSUBY, EXCL_TRGET_CN,
+    REQST_RCEPT_MTH_CN 등). 어댑터의 to_standard_program()은 자체 _clean()
+    으로 이미 벗기지만, 이 화면 요약은 raw_json을 별도로 직접 읽으므로
+    여기서도 한 번 더 벗겨야 화면에 래퍼가 그대로 노출되지 않는다."""
+    if not isinstance(value, str):
+        return value
+    return value.replace("<![CDATA[", "").replace("]]>", "").strip()
+
+
+def _clean_enara_raw(raw: dict) -> dict:
+    return {key: _strip_cdata(value) for key, value in raw.items()}
+
+
+def _enara_summary(conn, source_item_id: str) -> dict:
+    raw = _fetch_raw_item(conn, "enara", source_item_id)
+    if not raw:
+        return {"amount": NO_INFO, "excluded": CHECK_ORIGINAL, "startup_age": NO_INFO,
+                "method": CHECK_ORIGINAL}
+    raw = _clean_enara_raw(raw)
+    amount = None
+    for key in ("GOVSUBY", "SPORT_BGAMT", "TGYL_YEAR_BSNS_AMOUNT"):
+        value = raw.get(key)
+        if value not in (None, "", "0", 0):
+            amount = str(value).strip()
+            break
+    if amount and re.fullmatch(r"\d+", amount):
+        amount = f"{int(amount):,}원"
+    texts = _text_values(raw)
+    method = raw.get("REQST_RCEPT_MTH_CN")
+    return {
+        "amount": amount or NO_INFO,
+        "excluded": _find_exclusion(texts) or raw.get("EXCL_TRGET_CN") or CHECK_ORIGINAL,
+        "startup_age": _find_startup_age(texts) or NO_INFO,
+        "method": method.strip() if method else NO_INFO,
+    }
 
 
 _YYYYMMDD_PERIOD_RE = re.compile(r"^(\d{8})\s*~\s*(\d{8})$")
@@ -175,13 +279,24 @@ def _kstartup_summary(source_item_id: str) -> dict:
     fixture = _load_kstartup_fixture()
     item = fixture.get(str(source_item_id))
     if not item:
-        return {"method": CHECK_ORIGINAL}
+        return {"excluded": CHECK_ORIGINAL, "startup_age": CHECK_ORIGINAL,
+                "method": CHECK_ORIGINAL}
     parts = []
     for field_key, label in KSTARTUP_METHOD_FIELDS:
         value = item.get(field_key)
         if value:
             parts.append(f"{label}: {value.strip()}")
-    return {"method": "; ".join(parts) if parts else NO_INFO}
+    target_texts = [item.get("aply_trgt", ""), item.get("aply_trgt_ctnt", "")]
+    content_texts = [item.get("pbanc_ctnt", "")]
+    age = item.get("biz_enyy")
+    if age:
+        age = re.sub(r"(?<=\d)년미만", "년 미만", age)
+        age = re.sub(r",\s*", ", ", age)
+    return {
+        "excluded": _find_exclusion(target_texts + content_texts) or CHECK_ORIGINAL,
+        "startup_age": age or NO_INFO,
+        "method": "; ".join(parts) if parts else NO_INFO,
+    }
 
 
 def build_action_summary(conn, program_row) -> dict:
@@ -190,8 +305,9 @@ def build_action_summary(conn, program_row) -> dict:
     source/source_item_id/application_period_display/target_company_display/
     amount_display 컬럼을 포함해야 함).
 
-    반환: {"amount": str, "eligibility": str, "period": str, "method": str}
-    4개 키 모두 항상 사람이 읽을 문자열이다(빈 값이어도 NO_INFO/CHECK_ORIGINAL로
+    반환: {"amount": str, "eligibility": str, "excluded": str,
+    "startup_age": str, "period": str, "method": str}
+    모든 키는 항상 사람이 읽을 문자열이다(빈 값이어도 NO_INFO/CHECK_ORIGINAL로
     채워짐 — 절대 None을 반환하지 않는다).
     """
     source = program_row["source"]
@@ -212,15 +328,25 @@ def build_action_summary(conn, program_row) -> dict:
         extra = _public_benefits_summary(conn, source_item_id)
     elif source == "kstartup":
         extra = _kstartup_summary(source_item_id)
+    elif source == "enara":
+        extra = _enara_summary(conn, source_item_id)
 
-    if "eligibility" in extra and (not program_row["target_company_display"]):
+    if "amount" in extra and _is_missing_display(program_row["amount_display"]):
+        amount = extra["amount"]
+
+    if "eligibility" in extra and _is_missing_display(program_row["target_company_display"]):
         eligibility = extra["eligibility"]
     if "method" in extra:
         method = extra["method"]
 
+    excluded = extra.get("excluded", CHECK_ORIGINAL)
+    startup_age = extra.get("startup_age", NO_INFO)
+
     return {
         "amount": amount,
         "eligibility": eligibility,
+        "excluded": excluded,
+        "startup_age": startup_age,
         "period": period,
         "method": method,
     }
@@ -234,3 +360,8 @@ def truncate_ko(text: str, length: int = 60) -> str:
     if len(text) <= length:
         return text
     return text[:length].rstrip() + "…"
+
+
+def _is_missing_display(value: Optional[str]) -> bool:
+    """적재 과정에서 들어온 placeholder를 실제 대상 정보 없음으로 취급한다."""
+    return not value or value.strip() in {"-", "정보 없음", "미추출"}

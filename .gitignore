@@ -21,6 +21,8 @@ collector/sample_kstartup_response.json
 collector/sample_public_benefits_response.json
 collector/sample_kocca_response.json
 collector/fixtures/*_real_*.json
+/T_OPD_ASBS_PBNS_UNITY.xml
+/T_OPD_ASBS_UNITY.xml
 
 # 실행 중 자동 생성되는 오류 로그 (URL, 응답코드 등 운영 정보 포함)
 collector/logs/*.jsonl

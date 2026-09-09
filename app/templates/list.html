@@ -18,11 +18,21 @@
       <option value="{{ f }}" {% if f == field_filter %}selected{% endif %}>{{ f }}</option>
     {% endfor %}
   </select>
+  <select name="source">
+    <option value="">출처 전체</option>
+    {% for source in source_options %}
+      <option value="{{ source }}" {% if source == source_filter %}selected{% endif %}>{{ source_labels.get(source, source) }}</option>
+    {% endfor %}
+  </select>
   <button type="submit">검색</button>
   <a class="btn" href="/programs">필터 초기화</a>
 </form>
 
-<p style="color:#555; margin: 0 0 12px;">총 {{ total }}건</p>
+{% set range_start = (page - 1) * page_size + 1 %}
+{% set range_end = [page * page_size, total] | min %}
+<p style="color:#555; margin: 0 0 12px;">
+  총 {{ total }}건 중 {{ range_start if total else 0 }}~{{ range_end }}번째 표시 ({{ page }}/{{ total_pages }}페이지)
+</p>
 
 {% for p in programs %}
 <div class="card">
@@ -35,7 +45,13 @@
       <td class="label">보조금 규모</td><td>{{ p["summary"]["amount"] | truncate_ko }}</td>
     </tr>
     <tr>
-      <td class="label">지원자격</td><td>{{ p["summary"]["eligibility"] | truncate_ko }}</td>
+      <td class="label">신청대상</td><td>{{ p["summary"]["eligibility"] | truncate_ko }}</td>
+    </tr>
+    <tr>
+      <td class="label">제외대상</td><td>{{ p["summary"]["excluded"] | truncate_ko }}</td>
+    </tr>
+    <tr>
+      <td class="label">창업업력</td><td>{{ p["summary"]["startup_age"] | truncate_ko }}</td>
     </tr>
     <tr>
       <td class="label">지원기간</td><td>{{ p["summary"]["period"] | truncate_ko }}</td>
@@ -51,5 +67,30 @@
 {% else %}
 <p>조건에 맞는 지원사업이 없습니다.</p>
 {% endfor %}
+
+{% if total_pages > 1 %}
+{% macro page_link(target_page, label, disabled=False) %}
+  {% if disabled %}
+    <span class="btn" style="opacity:0.4; cursor:default;">{{ label }}</span>
+  {% else %}
+    <a class="btn" href="/programs?q={{ keyword }}&status={{ status_filter }}&field={{ field_filter }}&source={{ source_filter }}&page={{ target_page }}">{{ label }}</a>
+  {% endif %}
+{% endmacro %}
+<div style="display:flex; gap:6px; align-items:center; justify-content:center; margin-top:16px; flex-wrap:wrap;">
+  {{ page_link(page - 1, "← 이전", disabled=(page <= 1)) }}
+  {% set window_start = [1, page - 2] | max %}
+  {% set window_end = [total_pages, page + 2] | min %}
+  {% if window_start > 1 %}{{ page_link(1, "1") }}<span>…</span>{% endif %}
+  {% for p in range(window_start, window_end + 1) %}
+    {% if p == page %}
+      <span class="btn" style="background:#1d4ed8; color:#fff; border-color:#1d4ed8;">{{ p }}</span>
+    {% else %}
+      {{ page_link(p, p) }}
+    {% endif %}
+  {% endfor %}
+  {% if window_end < total_pages %}<span>…</span>{{ page_link(total_pages, total_pages) }}{% endif %}
+  {{ page_link(page + 1, "다음 →", disabled=(page >= total_pages)) }}
+</div>
+{% endif %}
 
 {% endblock %}

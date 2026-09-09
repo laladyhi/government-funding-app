@@ -11,7 +11,9 @@
 
   <table class="fields" style="margin-top:12px;">
     <tr><td class="label">보조금 규모</td><td>{{ program.summary.amount }}</td></tr>
-    <tr><td class="label">지원자격</td><td style="white-space:pre-line;">{{ program.summary.eligibility }}</td></tr>
+    <tr><td class="label">신청대상</td><td style="white-space:pre-line;">{{ program.summary.eligibility }}</td></tr>
+    <tr><td class="label">제외대상</td><td style="white-space:pre-line;">{{ program.summary.excluded }}</td></tr>
+    <tr><td class="label">창업업력</td><td style="white-space:pre-line;">{{ program.summary.startup_age }}</td></tr>
     <tr><td class="label">지원기간</td><td>{{ program.summary.period }}</td></tr>
     <tr><td class="label">지원방법</td><td style="white-space:pre-line;">{{ program.summary.method }}</td></tr>
   </table>

@@ -1,9 +1,9 @@
 """
-기업마당(bizinfo) 공고 수집 파이프라인 — Phase 1 검증용.
+기업마당(bizinfo) 공고 수집 파이프라인.
 
 이 스크립트가 하는 일 (한 번에 하나씩, 순서대로):
   1. .env에서 BIZINFO_API_KEY를 읽는다 (절대 출력하지 않음).
-  2. 목록 API를 여러 페이지 호출해 20건을 가져온다.
+  2. 기본 실행은 20건만 가져오고, --full 실행은 API가 알려주는 전체 건수만큼 가져온다.
   3. 원본 응답을 그대로 보존한다 (원문 추적용).
   4. 내부 표준 구조로 변환한다 (Program + 사실단위 확인상태 태깅).
   5. pblancId(기업마당 고유 공고ID)를 기준으로 중복을 제거한다.
@@ -13,7 +13,10 @@
 import hashlib
 import json
 import re
+import argparse
+import math
 import sys
+import time
 from datetime import date, datetime
 from pathlib import Path
 
@@ -35,7 +38,9 @@ RAW_ITEMS_DIR = PROJECT_ROOT / "collector" / "raw" / "bizinfo" / "items"
 MAPPED_OUT_PATH = PROJECT_ROOT / "collector" / "mapped" / "bizinfo_mapped.json"
 
 PAGE_UNIT = 10
-PAGES_TO_FETCH = 2  # 10 x 2 = 20건
+PAGES_TO_FETCH = 2  # 안전한 기본값: 10 x 2 = 20건
+DEFAULT_DELAY_SECONDS = 0.4
+DEFAULT_MAX_PAGES = 500
 
 
 def load_env(path: Path) -> dict:
@@ -51,16 +56,31 @@ def load_env(path: Path) -> dict:
     return values
 
 
-def fetch_page(api_key: str, page_index: int) -> dict:
+def fetch_page(api_key: str, page_index: int, page_unit: int = PAGE_UNIT) -> dict:
     params = {
         "crtfcKey": api_key,
         "dataType": "json",
-        "pageUnit": str(PAGE_UNIT),
+        "pageUnit": str(page_unit),
         "pageIndex": str(page_index),
     }
     response = requests.get(API_URL, params=params, timeout=10)
     response.raise_for_status()
     return response.json()
+
+
+def extract_total_count(payload: dict) -> int | None:
+    """기업마당 응답에서 전체 공고 수(totCnt)를 읽는다."""
+    candidates = [payload.get("totCnt"), payload.get("totalCount")]
+    items = payload.get("jsonArray") or []
+    if items:
+        candidates.extend([items[0].get("totCnt"), items[0].get("totalCount")])
+    for value in candidates:
+        try:
+            if value is not None and str(value).strip():
+                return int(str(value).replace(",", "").strip())
+        except (TypeError, ValueError):
+            continue
+    return None
 
 
 def compute_file_hash(path: Path) -> str:
@@ -178,6 +198,37 @@ def map_item_to_program(raw: dict, collected_at: str, raw_hash: str) -> dict:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--full", action="store_true",
+        help="API의 전체 건수(totCnt)를 기준으로 모든 페이지를 수집합니다.",
+    )
+    parser.add_argument(
+        "--plan", action="store_true",
+        help="첫 페이지만 확인하고 전체 건수·예정 페이지 수만 출력합니다. 파일은 쓰지 않습니다.",
+    )
+    parser.add_argument(
+        "--pages", type=int, default=PAGES_TO_FETCH,
+        help=f"--full이 아닐 때 가져올 페이지 수 (기본 {PAGES_TO_FETCH})",
+    )
+    parser.add_argument(
+        "--page-unit", type=int, default=PAGE_UNIT,
+        help=f"페이지당 건수 (기본 {PAGE_UNIT})",
+    )
+    parser.add_argument(
+        "--max-pages", type=int, default=DEFAULT_MAX_PAGES,
+        help=f"안전장치용 최대 페이지 수 (기본 {DEFAULT_MAX_PAGES})",
+    )
+    parser.add_argument(
+        "--delay", type=float, default=DEFAULT_DELAY_SECONDS,
+        help=f"페이지 사이 대기 시간(초) (기본 {DEFAULT_DELAY_SECONDS})",
+    )
+    args = parser.parse_args()
+
+    if args.pages < 1 or args.page_unit < 1 or args.max_pages < 1 or args.delay < 0:
+        print("[결과] 실패 — pages, page-unit, max-pages는 1 이상이고 delay는 0 이상이어야 합니다.")
+        return 1
+
     env = load_env(ENV_PATH)
     api_key = env.get("BIZINFO_API_KEY", "")
     if not api_key:
@@ -186,10 +237,36 @@ def main() -> int:
 
     collected_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    try:
+        first_payload = fetch_page(api_key, 1, args.page_unit)
+    except requests.exceptions.RequestException as exc:
+        safe_message = re.sub(r"crtfcKey=[^&\s]+", "crtfcKey=****", str(exc))
+        print(f"[결과] 실패 — page 1 요청 중 오류: {safe_message}")
+        return 1
+
+    total_count = extract_total_count(first_payload)
+    if total_count is None:
+        print("[경고] 응답에서 전체 건수(totCnt)를 찾지 못했습니다.")
+
+    if args.full and total_count is not None:
+        planned_pages = math.ceil(total_count / args.page_unit)
+    elif args.full:
+        planned_pages = args.max_pages
+    else:
+        planned_pages = args.pages
+    planned_pages = min(planned_pages, args.max_pages)
+
+    if args.plan:
+        print(f"[계획] API가 알려준 전체 공고 수: {total_count if total_count is not None else '확인 불가'}건")
+        print(f"[계획] 페이지당 건수: {args.page_unit}건")
+        print(f"[계획] 전체 수집 예정 페이지: {planned_pages}페이지")
+        print("[계획] 파일 저장·DB 변경 없이 종료했습니다.")
+        return 0
+
     all_raw_items = []
-    for page_index in range(1, PAGES_TO_FETCH + 1):
+    for page_index in range(1, planned_pages + 1):
         try:
-            payload = fetch_page(api_key, page_index)
+            payload = first_payload if page_index == 1 else fetch_page(api_key, page_index, args.page_unit)
         except requests.exceptions.RequestException as exc:
             safe_message = re.sub(r"crtfcKey=[^&\s]+", "crtfcKey=****", str(exc))
             print(f"[결과] 실패 — page {page_index} 요청 중 오류: {safe_message}")
@@ -199,6 +276,17 @@ def main() -> int:
         items = payload.get("jsonArray", [])
         print(f"[정보] page {page_index}: {len(items)}건 수신")
         all_raw_items.extend(items)
+
+        if not items:
+            print(f"[정보] page {page_index}가 비어 있어 수집을 종료합니다.")
+            break
+        if args.full and total_count is not None and len(all_raw_items) >= total_count:
+            break
+        if page_index < planned_pages and args.delay:
+            time.sleep(args.delay)
+
+    if args.full:
+        print(f"[정보] 전체 수집 모드: 총 {total_count if total_count is not None else '미확인'}건 기준")
 
     # 중복 제거: pblancId 기준
     seen_ids = set()
