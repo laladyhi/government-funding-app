@@ -1,7 +1,10 @@
 # Government Funding AI (정부 지원사업 검색 · 매칭 서비스)
 
-기업마당, K-Startup, 정부24 공공서비스(혜택) 등 여러 정부/공공기관의 지원사업
-공고를 하나의 표준 구조로 모아 검색·열람할 수 있게 해주는 로컬 웹 애플리케이션입니다.
+기업마당, K-Startup, 정부24 공공서비스(혜택), 한국콘텐츠진흥원(KOCCA),
+e나라도움 등 여러 정부/공공기관의 지원사업 공고를 하나의 표준 구조로 모아
+검색·열람할 수 있게 해주는 로컬 웹 애플리케이션입니다. 지역 필터와, 회사
+프로필을 입력하면 AI/외부 API 없이 규칙 기반으로 공고와 비교해주는 매칭
+기능도 포함합니다.
 
 이 프로젝트는 정부기관이 공식 운영하는 서비스가 **아니며**, 각 기관이 공개한
 Open API를 통해 공개된 공고 데이터를 그대로 수집·정리해서 보여주는 개인
@@ -17,18 +20,26 @@ Open API를 통해 공개된 공고 데이터를 그대로 수집·정리해서 
 - 원본 API 응답(raw)과 원본 첨부파일은 가공 전 상태 그대로 별도 보관합니다.
 - 아직 연동되지 않은 기관은 코드 없이 "링크만 관리" 또는 "연동 후보"
   상태로만 표시됩니다 — 미확인 API를 추정으로 구현하지 않습니다.
+- 회사 프로필(소재지·업종·업력·직원 수·매출·수출/연구개발 여부 등)을
+  입력하면 `app/db/company_matching.py`가 AI나 외부 API 없이 순수 규칙
+  (키워드 대조·날짜 계산)만으로 공고와 비교해 "적합 가능성 높음/검토
+  필요/조건 불일치"로 분류합니다. 공고에 없는 정보는 절대 탈락시키지
+  않고 "확인 필요"로 표시합니다.
 
 ## 데이터 출처 현황
 
 | 기관 | 방식 | 현재 상태 |
 |---|---|---|
-| 기업마당 (bizinfo.go.kr) | Open API | 연동 완료, 운영 DB 20건 적재 |
+| 기업마당 (bizinfo.go.kr) | Open API | 연동 완료, 운영 DB 1,552건 적재(전체 수집) |
 | 창업진흥원 (K-Startup) | Open API (data.go.kr) | 연동 완료, 운영 DB 5건 적재 |
-| 정부24 공공서비스(혜택) | Open API (odcloud.kr) | 연동 완료, 실제 호출·운영 DB 적재 완료 (5건) |
+| 정부24 공공서비스(혜택) | Open API (odcloud.kr) | 연동 완료, 운영 DB 5건 적재 |
+| 한국콘텐츠진흥원 (KOCCA) | Open API | 연동 완료, 운영 DB 4건 적재 |
+| e나라도움·보조금24 (국고보조금) | Open API (data.go.kr) | 연동 완료, 운영 DB 738건 적재(전체 197,936건 중 공고명·기간이 있는 자료만 선별) |
 | 중소벤처기업진흥공단 (KOSMES) | Open API 예정 | 연동 후보 (요청 명세 미확인) |
-| 한국콘텐츠진흥원 (KOCCA) | Open API | 연동 완료, 실제 호출·운영 DB 적재 완료 (4건) |
 | 국민체육진흥공단 (KSPO) | Open API 예정 | 연동 후보 (키 발급 전) |
 | 한국관광공사 / 영화진흥위원회 | 게시판 | 링크만 관리 (자동 수집 없음) |
+
+**운영 DB 총 2,304건** (2026-09-09 기준)
 
 각 출처의 상세 조사 근거와 확인일은 [docs/data-source-decision.md](docs/data-source-decision.md),
 [docs/agency-coverage-survey.md](docs/agency-coverage-survey.md) 문서에 있습니다.
@@ -105,6 +116,7 @@ python app/db/test_hash_consistency.py
 python app/db/test_standard_source_pipeline.py
 python app/db/test_kstartup_real_pipeline.py
 python app/db/test_public_benefits_pipeline.py
+python app/db/test_company_matching.py
 ```
 
 ## 보안 원칙
