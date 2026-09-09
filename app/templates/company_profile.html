@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}우리 회사 맞춤 찾기 — Government Funding AI{% endblock %}
+{% block content %}
+
+<h1 style="font-size:18px; margin:0 0 12px;">우리 회사 프로필</h1>
+<p class="note" style="margin-bottom:12px;">
+  입력한 정보는 이 컴퓨터의 로컬 DB에만 저장되며, 외부로 전송되지 않습니다.
+  AI가 아니라 아래 항목을 지원사업 공고 원문과 단순 비교하는 규칙 기반
+  방식으로 매칭 결과를 계산합니다.
+</p>
+
+<div class="card">
+  <strong>새 회사 프로필 추가</strong>
+  <form class="profile-form" method="post" action="/company-profile" style="margin-top:10px;">
+    <label>회사 이름(별칭)
+      <input type="text" name="name" placeholder="예: 우리 회사" required>
+    </label>
+    <label>소재지
+      <input type="text" name="region" placeholder="예: 경기">
+    </label>
+    <label>업종
+      <input type="text" name="industry" placeholder="예: 제조업">
+    </label>
+    <label>창업일
+      <input type="date" name="founded_date">
+    </label>
+    <label>업력(년, 창업일 모를 때만)
+      <input type="number" name="business_age_years" min="0">
+    </label>
+    <label>직원 수
+      <input type="number" name="employee_count" min="0">
+    </label>
+    <label>매출 구간
+      <input type="text" name="revenue_range" placeholder="예: 1억~10억">
+    </label>
+    <label>중소기업·소상공인 여부
+      <select name="company_type">
+        {% for opt in company_type_options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>수출 여부
+      <select name="exports">
+        {% for opt in yes_no_options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>연구개발 여부
+      <select name="rnd">
+        {% for opt in yes_no_options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label style="flex:1 1 100%;">필요한 지원 분야(쉼표로 구분)
+      <input type="text" name="desired_fields" placeholder="예: 소상공인, 디지털 전환, 수출">
+    </label>
+    <div style="flex:1 1 100%; margin-top:6px;">
+      <button type="submit" class="btn" style="background:#1d4ed8; color:#fff; border-color:#1d4ed8;">저장</button>
+    </div>
+  </form>
+</div>
+
+<h2 style="font-size:16px; margin:20px 0 8px;">저장된 프로필</h2>
+{% for p in profiles %}
+<div class="card">
+  <div style="font-weight:600;">{{ p["name"] }}</div>
+  <div class="note">
+    {{ p["region"] or "소재지 미입력" }} · {{ p["industry"] or "업종 미입력" }} ·
+    {{ p["company_type"] }} · 직원 {{ p["employee_count"] if p["employee_count"] is not none else "미입력" }}명
+  </div>
+  <div style="margin-top:8px;">
+    <a class="btn" href="/company-profile/{{ p['id'] }}/match">이 회사로 매칭 결과 보기 →</a>
+  </div>
+</div>
+{% else %}
+<p>아직 저장된 회사 프로필이 없습니다. 위 양식으로 추가해 주세요.</p>
+{% endfor %}
+
+{% endblock %}

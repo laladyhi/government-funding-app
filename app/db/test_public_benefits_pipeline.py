@@ -203,7 +203,11 @@ def main() -> int:
     for program, raw_item in converted:
         core_title = program.title.replace("[가상데이터] ", "")
         rows = prod_conn.execute(
-            "SELECT title FROM programs WHERE title LIKE ?", (f"%{core_title[:10]}%",)
+            # 짧은 앞부분(예: "2026년 소상공인")으로 비교하면 대량 수집된
+            # 실제 공고와 우연히 겹쳐 가상 fixture를 중복으로 오판한다.
+            # 이 검사는 fixture가 실제 운영 데이터와 동일한 제목인지 확인하는
+            # 참고용 검사이므로, 전체 정규화 제목을 기준으로 비교한다.
+            "SELECT title FROM programs WHERE title = ?", (core_title,)
         ).fetchall()
         if rows:
             overlap_titles.append((program.title, [r["title"] for r in rows]))

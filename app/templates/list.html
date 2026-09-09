@@ -24,6 +24,26 @@
       <option value="{{ source }}" {% if source == source_filter %}selected{% endif %}>{{ source_labels.get(source, source) }}</option>
     {% endfor %}
   </select>
+  <input type="text" name="region" placeholder="지역 예) 경기도" value="{{ region_filter }}" list="region-options" style="min-width:150px;">
+  <datalist id="region-options">
+    <option value="서울"></option>
+    <option value="경기도"></option>
+    <option value="인천"></option>
+    <option value="부산"></option>
+    <option value="대구"></option>
+    <option value="광주"></option>
+    <option value="대전"></option>
+    <option value="울산"></option>
+    <option value="세종"></option>
+    <option value="강원"></option>
+    <option value="충북"></option>
+    <option value="충남"></option>
+    <option value="전북"></option>
+    <option value="전남"></option>
+    <option value="경북"></option>
+    <option value="경남"></option>
+    <option value="제주"></option>
+  </datalist>
   <button type="submit">검색</button>
   <a class="btn" href="/programs">필터 초기화</a>
 </form>
@@ -36,6 +56,11 @@
 
 {% for p in programs %}
 <div class="card">
+  <div style="margin-bottom:6px;">
+    <span class="badge {{ p['deadline_state']['class_name'] }}">
+      {{ p["deadline_state"]["label"] }}{% if p["deadline_state"]["label"] == "마감임박" %} · D-{{ p["deadline_state"]["days_left"] }}{% endif %}
+    </span>
+  </div>
   <a href="/programs/{{ p['id'] }}" style="font-weight:600; font-size:15px; text-decoration:none; color:#111;">
     {{ p["title"] }}
   </a>
@@ -73,7 +98,7 @@
   {% if disabled %}
     <span class="btn" style="opacity:0.4; cursor:default;">{{ label }}</span>
   {% else %}
-    <a class="btn" href="/programs?q={{ keyword }}&status={{ status_filter }}&field={{ field_filter }}&source={{ source_filter }}&page={{ target_page }}">{{ label }}</a>
+    <a class="btn" href="/programs?q={{ keyword }}&status={{ status_filter }}&field={{ field_filter }}&source={{ source_filter }}&region={{ region_filter }}&page={{ target_page }}">{{ label }}</a>
   {% endif %}
 {% endmacro %}
 <div style="display:flex; gap:6px; align-items:center; justify-content:center; margin-top:16px; flex-wrap:wrap;">

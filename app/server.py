@@ -18,6 +18,7 @@ from pathlib import Path
 from flask import Flask, render_template, request, abort
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "db"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from query import (  # noqa: E402
     get_connection,
     DETAIL_FIELD_ORDER,
@@ -28,6 +29,15 @@ from query import (  # noqa: E402
     SOURCE_DISPLAY_LABELS,
 )
 from action_summary import build_action_summary, truncate_ko  # noqa: E402
+from deadline_status import get_deadline_status, deadline_sort_key  # noqa: E402
+from region_matching import build_region_index, matches_region  # noqa: E402
+from company_matching import (  # noqa: E402
+    match_company_to_all_programs,
+    VERDICT_GOOD,
+    VERDICT_REVIEW,
+    VERDICT_MISMATCH,
+    DIMENSION_LABELS,
+)
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -227,6 +237,118 @@ def support_sources():
     )
 
 
+COMPANY_TYPE_OPTIONS = ["소상공인", "중소기업", "중견기업", "해당없음", "확인 필요"]
+YES_NO_OPTIONS = ["예", "아니오", "확인 필요"]
+
+
+def _int_or_none(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+@app.route("/company-profile", methods=["GET", "POST"])
+def company_profile():
+    """
+    회사 프로필 입력/목록 화면. 여기서 저장하는 값은 company_profiles
+    표(2026-09-09 새로 추가, 마이그레이션 0006)에만 들어가고, 기존
+    지원사업 표(programs 등)는 전혀 건드리지 않는다.
+    """
+    conn = get_connection()
+    if request.method == "POST":
+        # company_type/exports/rnd는 DB의 CHECK 제약과 정확히 같은 값만
+        # 허용된다 — 폼이 예상 밖의 값(빈 문자열, 인코딩이 깨진 값 등)을
+        # 보내면 여기서 안전한 기본값으로 걸러내야 한다. 이걸 안 하면
+        # sqlite3.IntegrityError가 그대로 튀어 올라 500 에러 화면이 뜨고,
+        # 그 요청이 재시도되는 경우 빈 프로필이 반복 저장될 위험이 있다
+        # (2026-09-09 테스트 중 실제로 겪은 문제).
+        submitted_type = request.form.get("company_type", "")
+        company_type = submitted_type if submitted_type in COMPANY_TYPE_OPTIONS else "확인 필요"
+        submitted_exports = request.form.get("exports", "")
+        exports = submitted_exports if submitted_exports in YES_NO_OPTIONS else "확인 필요"
+        submitted_rnd = request.form.get("rnd", "")
+        rnd = submitted_rnd if submitted_rnd in YES_NO_OPTIONS else "확인 필요"
+
+        name = request.form.get("name", "").strip() or "이름 없는 회사"
+        conn.execute(
+            """
+            INSERT INTO company_profiles (
+              name, region, industry, founded_date, business_age_years,
+              employee_count, revenue_range, company_type, exports, rnd, desired_fields
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                name,
+                request.form.get("region", "").strip() or None,
+                request.form.get("industry", "").strip() or None,
+                request.form.get("founded_date", "").strip() or None,
+                _int_or_none(request.form.get("business_age_years")),
+                _int_or_none(request.form.get("employee_count")),
+                request.form.get("revenue_range", "").strip() or None,
+                company_type,
+                exports,
+                rnd,
+                request.form.get("desired_fields", "").strip() or None,
+            ),
+        )
+        conn.commit()
+        from flask import redirect, url_for
+        return redirect(url_for("company_profile"))
+
+    profiles = conn.execute("SELECT * FROM company_profiles ORDER BY id DESC").fetchall()
+    return render_template(
+        "company_profile.html",
+        profiles=profiles,
+        company_type_options=COMPANY_TYPE_OPTIONS,
+        yes_no_options=YES_NO_OPTIONS,
+    )
+
+
+@app.route("/company-profile/<int:company_id>/match")
+def company_match(company_id):
+    """
+    저장된 회사 프로필 하나를 기준으로 전체 지원사업과 비교한다.
+    AI/외부 API 호출 없음 — app/db/company_matching.py의 규칙 비교만 사용.
+    programs 등 기존 표는 조회만 하고 쓰지 않는다.
+    """
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM company_profiles WHERE id = ?", (company_id,)).fetchone()
+    if not row:
+        abort(404)
+    company = dict(row)
+    all_results = match_company_to_all_programs(conn, company)
+    counts = {VERDICT_GOOD: 0, VERDICT_REVIEW: 0, VERDICT_MISMATCH: 0}
+    for r in all_results:
+        counts[r["verdict"]] += 1
+
+    # 목록 화면과 동일하게 페이지당 PAGE_SIZE(20)건만 렌더링한다 — 전체
+    # 2천 건 이상을 한 화면에 그대로 그리면 목록 화면과 같은 문제(과도한
+    # 스크롤·느린 렌더링)가 재현된다. 정렬(적합 가능성 높음 우선)은
+    # match_company_to_all_programs()가 이미 해 둔 상태를 그대로 쓴다.
+    total_count = len(all_results)
+    total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
+    page = request.args.get("page", 1, type=int) or 1
+    page = min(max(page, 1), total_pages)
+    offset = (page - 1) * PAGE_SIZE
+    results = all_results[offset: offset + PAGE_SIZE]
+
+    return render_template(
+        "match_results.html",
+        company=company,
+        results=results,
+        counts=counts,
+        total_count=total_count,
+        page=page,
+        total_pages=total_pages,
+        dimension_labels=DIMENSION_LABELS,
+        source_labels=SOURCE_DISPLAY_LABELS,
+    )
+
+
 @app.route("/programs")
 def program_list():
     conn = get_connection()
@@ -234,6 +356,7 @@ def program_list():
     status_filter = request.args.get("status", "").strip()
     field_filter = request.args.get("field", "").strip()
     source_filter = request.args.get("source", "").strip()
+    region_filter = request.args.get("region", "").strip()
 
     where_clause = "1=1"
     params = []
@@ -254,17 +377,6 @@ def program_list():
         where_clause += " AND p.source = ?"
         params.append(source_filter)
 
-    # 출처가 4개→5개로 늘면서 전체 건수가 1,500건을 훌쩍 넘겨(기업마당
-    # 전체 수집 이후) 한 페이지에 전부 렌더링하면 화면이 지나치게
-    # 길어지고 무거워졌다 — 페이지당 PAGE_SIZE(20)건만 보여준다.
-    total_count = conn.execute(
-        f"SELECT COUNT(*) FROM programs p WHERE {where_clause}", params
-    ).fetchone()[0]
-    total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
-    page = request.args.get("page", 1, type=int) or 1
-    page = min(max(page, 1), total_pages)
-    offset = (page - 1) * PAGE_SIZE
-
     query = f"""
         SELECT p.id, p.title, p.status_computed, p.application_period_display,
                p.amount_display, p.target_company_display, p.region_display,
@@ -276,9 +388,28 @@ def program_list():
         FROM programs p
         WHERE {where_clause}
         ORDER BY p.id DESC
-        LIMIT ? OFFSET ?
     """
-    programs = [dict(r) for r in conn.execute(query, params + [PAGE_SIZE, offset]).fetchall()]
+    all_programs = [dict(r) for r in conn.execute(query, params).fetchall()]
+    if region_filter:
+        region_index = build_region_index(conn)
+        all_programs = [
+            p for p in all_programs
+            if matches_region(
+                [p.get("region_display"), *region_index.get(p["id"], set())],
+                region_filter,
+            )
+        ]
+
+    # 출처가 늘어나 전체 건수가 많아져도 한 페이지에는 PAGE_SIZE건만 표시한다.
+    total_count = len(all_programs)
+    total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
+    page = request.args.get("page", 1, type=int) or 1
+    page = min(max(page, 1), total_pages)
+    for p in all_programs:
+        p["deadline_state"] = get_deadline_status(p.get("application_period_display") or "")
+    all_programs.sort(key=deadline_sort_key)
+    offset = (page - 1) * PAGE_SIZE
+    programs = all_programs[offset: offset + PAGE_SIZE]
     for p in programs:
         p["summary"] = build_action_summary(conn, p)
 
@@ -305,6 +436,7 @@ def program_list():
         status_filter=status_filter,
         field_filter=field_filter,
         source_filter=source_filter,
+        region_filter=region_filter,
         status_options=status_options,
         field_options=field_options,
         source_options=source_options,
