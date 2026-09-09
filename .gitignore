@@ -32,9 +32,11 @@ collector/logs/*.jsonl
 # 폴더명 그대로("[가이드]...")를 리터럴로 매칭한다.
 /\[가이드\]*/
 /한국콘텐츠진흥원_지원사업_API_명세서.pdf
-# NTIS 테스트 페이지 저장본 — 인증키·로그인 사용자 정보가 포함될 수 있음
+# NTIS/KOSMES 테스트 페이지 저장본 — 인증키·로그인 사용자 정보가 포함될 수 있음
 /ntisOpenAPI.html
 /ntisOpenAPI_files/
+/KOSME _ 중소벤처기업진흥공단.html
+/KOSME _ 중소벤처기업진흥공단_files/
 
 # PDF 도구가 페이지를 이미지로 렌더링하며 만든 임시 산출물(프로젝트 파일 아님)
 /tmp/

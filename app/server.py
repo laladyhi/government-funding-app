@@ -251,6 +251,38 @@ def _int_or_none(value):
         return None
 
 
+def _parse_company_form(form) -> tuple:
+    """
+    company_profiles INSERT/UPDATE에 그대로 쓸 수 있는 값 튜플을 만든다.
+    company_type/exports/rnd는 DB의 CHECK 제약과 정확히 같은 값만
+    허용된다 — 폼이 예상 밖의 값(빈 문자열, 인코딩이 깨진 값 등)을
+    보내면 여기서 안전한 기본값으로 걸러내야 한다. 이걸 안 하면
+    sqlite3.IntegrityError가 그대로 튀어 올라 500 에러 화면이 뜨고,
+    그 요청이 재시도되는 경우 빈 프로필이 반복 저장될 위험이 있다
+    (2026-09-09 테스트 중 실제로 겪은 문제).
+    """
+    submitted_type = form.get("company_type", "")
+    company_type = submitted_type if submitted_type in COMPANY_TYPE_OPTIONS else "확인 필요"
+    submitted_exports = form.get("exports", "")
+    exports = submitted_exports if submitted_exports in YES_NO_OPTIONS else "확인 필요"
+    submitted_rnd = form.get("rnd", "")
+    rnd = submitted_rnd if submitted_rnd in YES_NO_OPTIONS else "확인 필요"
+    name = form.get("name", "").strip() or "이름 없는 회사"
+    return (
+        name,
+        form.get("region", "").strip() or None,
+        form.get("industry", "").strip() or None,
+        form.get("founded_date", "").strip() or None,
+        _int_or_none(form.get("business_age_years")),
+        _int_or_none(form.get("employee_count")),
+        form.get("revenue_range", "").strip() or None,
+        company_type,
+        exports,
+        rnd,
+        form.get("desired_fields", "").strip() or None,
+    )
+
+
 @app.route("/company-profile", methods=["GET", "POST"])
 def company_profile():
     """
@@ -260,20 +292,7 @@ def company_profile():
     """
     conn = get_connection()
     if request.method == "POST":
-        # company_type/exports/rnd는 DB의 CHECK 제약과 정확히 같은 값만
-        # 허용된다 — 폼이 예상 밖의 값(빈 문자열, 인코딩이 깨진 값 등)을
-        # 보내면 여기서 안전한 기본값으로 걸러내야 한다. 이걸 안 하면
-        # sqlite3.IntegrityError가 그대로 튀어 올라 500 에러 화면이 뜨고,
-        # 그 요청이 재시도되는 경우 빈 프로필이 반복 저장될 위험이 있다
-        # (2026-09-09 테스트 중 실제로 겪은 문제).
-        submitted_type = request.form.get("company_type", "")
-        company_type = submitted_type if submitted_type in COMPANY_TYPE_OPTIONS else "확인 필요"
-        submitted_exports = request.form.get("exports", "")
-        exports = submitted_exports if submitted_exports in YES_NO_OPTIONS else "확인 필요"
-        submitted_rnd = request.form.get("rnd", "")
-        rnd = submitted_rnd if submitted_rnd in YES_NO_OPTIONS else "확인 필요"
-
-        name = request.form.get("name", "").strip() or "이름 없는 회사"
+        values = _parse_company_form(request.form)
         conn.execute(
             """
             INSERT INTO company_profiles (
@@ -281,19 +300,7 @@ def company_profile():
               employee_count, revenue_range, company_type, exports, rnd, desired_fields
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                name,
-                request.form.get("region", "").strip() or None,
-                request.form.get("industry", "").strip() or None,
-                request.form.get("founded_date", "").strip() or None,
-                _int_or_none(request.form.get("business_age_years")),
-                _int_or_none(request.form.get("employee_count")),
-                request.form.get("revenue_range", "").strip() or None,
-                company_type,
-                exports,
-                rnd,
-                request.form.get("desired_fields", "").strip() or None,
-            ),
+            values,
         )
         conn.commit()
         from flask import redirect, url_for
@@ -303,9 +310,54 @@ def company_profile():
     return render_template(
         "company_profile.html",
         profiles=profiles,
+        edit_profile=None,
         company_type_options=COMPANY_TYPE_OPTIONS,
         yes_no_options=YES_NO_OPTIONS,
     )
+
+
+@app.route("/company-profile/<int:company_id>/edit", methods=["GET", "POST"])
+def company_profile_edit(company_id):
+    """저장된 회사 프로필 하나를 수정한다. company_profiles 표만 갱신한다."""
+    conn = get_connection()
+    existing = conn.execute("SELECT * FROM company_profiles WHERE id = ?", (company_id,)).fetchone()
+    if not existing:
+        abort(404)
+
+    if request.method == "POST":
+        values = _parse_company_form(request.form)
+        conn.execute(
+            """
+            UPDATE company_profiles SET
+              name = ?, region = ?, industry = ?, founded_date = ?, business_age_years = ?,
+              employee_count = ?, revenue_range = ?, company_type = ?, exports = ?, rnd = ?,
+              desired_fields = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            values + (company_id,),
+        )
+        conn.commit()
+        from flask import redirect, url_for
+        return redirect(url_for("company_profile"))
+
+    profiles = conn.execute("SELECT * FROM company_profiles ORDER BY id DESC").fetchall()
+    return render_template(
+        "company_profile.html",
+        profiles=profiles,
+        edit_profile=dict(existing),
+        company_type_options=COMPANY_TYPE_OPTIONS,
+        yes_no_options=YES_NO_OPTIONS,
+    )
+
+
+@app.route("/company-profile/<int:company_id>/delete", methods=["POST"])
+def company_profile_delete(company_id):
+    """저장된 회사 프로필 하나를 삭제한다. company_profiles 표만 건드린다(POST 전용)."""
+    conn = get_connection()
+    conn.execute("DELETE FROM company_profiles WHERE id = ?", (company_id,))
+    conn.commit()
+    from flask import redirect, url_for
+    return redirect(url_for("company_profile"))
 
 
 @app.route("/company-profile/<int:company_id>/match")
@@ -349,6 +401,61 @@ def company_match(company_id):
     )
 
 
+@app.route("/programs/profile", methods=["POST"])
+def inline_company_profile():
+    """목록 화면 안에서 회사 정보를 저장하고 바로 매칭하기 위한 처리."""
+    conn = get_connection()
+    submitted_type = request.form.get("company_type", "")
+    company_type = submitted_type if submitted_type in COMPANY_TYPE_OPTIONS else "확인 필요"
+    submitted_exports = request.form.get("exports", "")
+    exports = submitted_exports if submitted_exports in YES_NO_OPTIONS else "확인 필요"
+    submitted_rnd = request.form.get("rnd", "")
+    rnd = submitted_rnd if submitted_rnd in YES_NO_OPTIONS else "확인 필요"
+
+    values = (
+        request.form.get("name", "").strip() or "이름 없는 회사",
+        request.form.get("region", "").strip() or None,
+        request.form.get("industry", "").strip() or None,
+        request.form.get("founded_date", "").strip() or None,
+        _int_or_none(request.form.get("business_age_years")),
+        _int_or_none(request.form.get("employee_count")),
+        request.form.get("revenue_range", "").strip() or None,
+        company_type,
+        exports,
+        rnd,
+        request.form.get("desired_fields", "").strip() or None,
+    )
+    profile_id = _int_or_none(request.form.get("profile_id"))
+    if profile_id and conn.execute(
+        "SELECT 1 FROM company_profiles WHERE id = ?", (profile_id,)
+    ).fetchone():
+        conn.execute(
+            """
+            UPDATE company_profiles
+            SET name=?, region=?, industry=?, founded_date=?, business_age_years=?,
+                employee_count=?, revenue_range=?, company_type=?, exports=?, rnd=?,
+                desired_fields=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            values + (profile_id,),
+        )
+    else:
+        conn.execute(
+            """
+            INSERT INTO company_profiles (
+              name, region, industry, founded_date, business_age_years,
+              employee_count, revenue_range, company_type, exports, rnd, desired_fields
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            values,
+        )
+        profile_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    conn.commit()
+
+    from flask import redirect, url_for
+    return redirect(url_for("program_list", profile_id=profile_id))
+
+
 @app.route("/programs")
 def program_list():
     conn = get_connection()
@@ -357,6 +464,20 @@ def program_list():
     field_filter = request.args.get("field", "").strip()
     source_filter = request.args.get("source", "").strip()
     region_filter = request.args.get("region", "").strip()
+    profile_id = request.args.get("profile_id", type=int)
+    match_view = request.args.get("view", "matched").strip()
+    if match_view not in ("matched", "all"):
+        match_view = "matched"
+
+    # 저장된 회사가 있으면 일반적인 /programs 접속도 가장 최근 프로필의
+    # 맞춤 사업부터 보여준다. 사용자가 명시적으로 view=all을 요청한 경우만
+    # 전체 목록으로 시작한다.
+    if not profile_id and match_view != "all":
+        latest_profile = conn.execute(
+            "SELECT id FROM company_profiles ORDER BY updated_at DESC, id DESC LIMIT 1"
+        ).fetchone()
+        if latest_profile:
+            profile_id = latest_profile["id"]
 
     where_clause = "1=1"
     params = []
@@ -400,18 +521,54 @@ def program_list():
             )
         ]
 
+    company_profile = None
+    match_counts = {VERDICT_GOOD: 0, VERDICT_REVIEW: 0, VERDICT_MISMATCH: 0}
+    matches_by_program = {}
+    if profile_id:
+        profile_row = conn.execute(
+            "SELECT * FROM company_profiles WHERE id = ?", (profile_id,)
+        ).fetchone()
+        if profile_row:
+            company_profile = dict(profile_row)
+            all_matches = match_company_to_all_programs(conn, company_profile)
+            for result in all_matches:
+                match_counts[result["verdict"]] += 1
+            matches_by_program = {r["program_id"]: r for r in all_matches}
+            if match_view != "all":
+                all_programs = [
+                    p for p in all_programs
+                    if matches_by_program.get(p["id"], {}).get("verdict")
+                    in (VERDICT_GOOD, VERDICT_REVIEW)
+                ]
+
+    for p in all_programs:
+        p["deadline_state"] = get_deadline_status(p.get("application_period_display") or "")
+        p["match_result"] = matches_by_program.get(p["id"])
+
+    if company_profile:
+        priority_order = {VERDICT_GOOD: 0, VERDICT_REVIEW: 1, VERDICT_MISMATCH: 2}
+        all_programs.sort(key=lambda p: (
+            priority_order.get(
+                (p.get("match_result") or {}).get("verdict"), 3
+            ),
+            *deadline_sort_key(p),
+        ))
+    else:
+        all_programs.sort(key=deadline_sort_key)
+
     # 출처가 늘어나 전체 건수가 많아져도 한 페이지에는 PAGE_SIZE건만 표시한다.
     total_count = len(all_programs)
     total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
     page = request.args.get("page", 1, type=int) or 1
     page = min(max(page, 1), total_pages)
-    for p in all_programs:
-        p["deadline_state"] = get_deadline_status(p.get("application_period_display") or "")
-    all_programs.sort(key=deadline_sort_key)
     offset = (page - 1) * PAGE_SIZE
     programs = all_programs[offset: offset + PAGE_SIZE]
     for p in programs:
         p["summary"] = build_action_summary(conn, p)
+
+    company_profiles = [dict(r) for r in conn.execute(
+        "SELECT id, name FROM company_profiles ORDER BY id DESC"
+    ).fetchall()]
 
     status_options = [r["status_computed"] for r in conn.execute(
         "SELECT DISTINCT status_computed FROM programs ORDER BY status_computed"
@@ -437,6 +594,15 @@ def program_list():
         field_filter=field_filter,
         source_filter=source_filter,
         region_filter=region_filter,
+        profile_id=profile_id,
+        match_view=match_view,
+        company_profile=company_profile,
+        company_profiles=company_profiles,
+        match_counts=match_counts,
+        matched_total=match_counts[VERDICT_GOOD] + match_counts[VERDICT_REVIEW],
+        dimension_labels=DIMENSION_LABELS,
+        company_type_options=COMPANY_TYPE_OPTIONS,
+        yes_no_options=YES_NO_OPTIONS,
         status_options=status_options,
         field_options=field_options,
         source_options=source_options,

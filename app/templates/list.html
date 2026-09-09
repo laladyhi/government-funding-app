@@ -48,6 +48,98 @@
   <a class="btn" href="/programs">필터 초기화</a>
 </form>
 
+<div class="programs-layout">
+<aside class="card company-panel">
+  <h2>내 회사 맞춤 찾기</h2>
+  <p class="panel-note">이 화면에서 회사 정보를 입력하면 오른쪽 지원사업 목록에 맞춤 판정이 함께 표시됩니다. 외부 AI나 토큰은 사용하지 않습니다.</p>
+  <form method="post" action="/programs/profile">
+    {% if profile_id %}<input type="hidden" name="profile_id" value="{{ profile_id }}">{% endif %}
+    <label>회사 이름(별칭)
+      <input type="text" name="name" required value="{{ company_profile['name'] if company_profile else '' }}" placeholder="예: 우리 회사">
+    </label>
+    <label>소재지
+      <input type="text" name="region" value="{{ company_profile['region'] if company_profile else '' }}" placeholder="예: 경기도">
+    </label>
+    <label>업종
+      <input type="text" name="industry" value="{{ company_profile['industry'] if company_profile else '' }}" placeholder="예: 제조업">
+    </label>
+    <label>창업일
+      <input type="date" name="founded_date" value="{{ company_profile['founded_date'] if company_profile else '' }}">
+    </label>
+    <label>업력(년, 창업일을 모를 때)
+      <input type="number" name="business_age_years" min="0" value="{{ company_profile['business_age_years'] if company_profile else '' }}">
+    </label>
+    <label>직원 수
+      <input type="number" name="employee_count" min="0" value="{{ company_profile['employee_count'] if company_profile else '' }}">
+    </label>
+    <label>매출 구간
+      <input type="text" name="revenue_range" value="{{ company_profile['revenue_range'] if company_profile else '' }}" placeholder="예: 1억~10억">
+    </label>
+    <label>기업 유형
+      <select name="company_type">
+        {% for opt in company_type_options %}<option value="{{ opt }}" {% if company_profile and company_profile['company_type'] == opt %}selected{% endif %}>{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>수출 여부
+      <select name="exports">
+        {% for opt in yes_no_options %}<option value="{{ opt }}" {% if company_profile and company_profile['exports'] == opt %}selected{% endif %}>{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>연구개발 여부
+      <select name="rnd">
+        {% for opt in yes_no_options %}<option value="{{ opt }}" {% if company_profile and company_profile['rnd'] == opt %}selected{% endif %}>{{ opt }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>필요한 지원 분야
+      <input type="text" name="desired_fields" value="{{ company_profile['desired_fields'] if company_profile else '' }}" placeholder="예: 소상공인, 수출">
+    </label>
+    <button type="submit" class="btn" style="width:100%; margin-top:12px; background:#1d4ed8; color:#fff; border-color:#1d4ed8;">저장하고 맞춤 결과 보기</button>
+  </form>
+
+  {% if company_profile %}
+  <div class="match-summary">
+    <strong>{{ company_profile['name'] }} 매칭 결과</strong>
+    <div class="panel-note" style="margin-top:4px;">현재 {{ matched_total }}건의 맞춤 사업을 표시 중입니다.</div>
+    <div><span class="badge badge-verdict-good">적합 가능성 높음 {{ match_counts['적합 가능성 높음'] }}건</span></div>
+    <div><span class="badge badge-verdict-review">검토 필요 {{ match_counts['검토 필요'] }}건</span></div>
+    <div><span class="badge badge-verdict-mismatch">조건 불일치 {{ match_counts['조건 불일치'] }}건</span></div>
+    {% if match_view == 'all' %}
+      <div style="margin-top:8px;"><a class="btn" href="/programs?profile_id={{ profile_id }}">맞춤 사업만 보기</a></div>
+    {% else %}
+      <div style="margin-top:8px;"><a class="btn" href="/programs?profile_id={{ profile_id }}&view=all">전체 사업 보기</a></div>
+    {% endif %}
+    <div style="margin-top:8px;"><a class="btn" href="/company-profile/{{ profile_id }}/match">전체 매칭 상세 보기 →</a></div>
+  </div>
+  {% endif %}
+
+  {% if company_profiles %}
+  <div class="match-summary">
+    <div class="panel-note">저장된 회사</div>
+    {% for profile in company_profiles %}
+      <div style="margin-top:5px;"><a href="/programs?profile_id={{ profile['id'] }}">{{ profile['name'] }}</a></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</aside>
+
+<section class="programs-results">
+<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+  {% if company_profile %}
+    {% if match_view == 'all' %}
+      <a class="btn" href="/programs?profile_id={{ profile_id }}">맞춤 사업만 보기</a>
+    {% else %}
+      <a class="btn" href="/programs?profile_id={{ profile_id }}&view=all">전체 사업 보기</a>
+    {% endif %}
+  {% else %}
+    <a class="btn" href="/programs?view=all">전체 사업 보기</a>
+    {% if company_profiles %}
+      <span class="note">저장된 회사가 있습니다:</span>
+      {% for profile in company_profiles %}
+        <a class="btn" href="/programs?profile_id={{ profile['id'] }}">{{ profile['name'] }} 맞춤 보기</a>
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+</div>
 {% set range_start = (page - 1) * page_size + 1 %}
 {% set range_end = [page * page_size, total] | min %}
 <p style="color:#555; margin: 0 0 12px;">
@@ -87,6 +179,55 @@
   </table>
   <span class="badge badge-status">{{ p["status_computed"] | status_label }}</span>
   <span class="badge badge-source">출처: {{ source_labels.get(p["source"], p["source"]) }}</span>
+  {% if p.get("match_result") %}
+    {% if p["match_result"]["verdict"] == "적합 가능성 높음" %}
+      <span class="badge badge-verdict-good">내 회사: 적합 가능성 높음</span>
+    {% elif p["match_result"]["verdict"] == "조건 불일치" %}
+      <span class="badge badge-verdict-mismatch">내 회사: 조건 불일치</span>
+    {% else %}
+      <span class="badge badge-verdict-review">내 회사: 검토 필요</span>
+    {% endif %}
+    <div class="match-reason">
+      {% if p["match_result"]["verdict"] == "적합 가능성 높음" %}
+        <strong>추천 이유:</strong> 회사 조건과 공고의 일부 조건이 일치하고, 현재 신청 가능한 사업으로 판단되었습니다.
+      {% elif p["match_result"]["verdict"] == "검토 필요" %}
+        <strong>검토 이유:</strong> 일부 조건의 정보가 부족하거나 명확하지 않아 공고 원문 확인이 필요합니다.
+      {% else %}
+        <strong>제외 이유:</strong> 회사 조건과 맞지 않는 항목이 확인되어 맞춤 목록에서는 제외되었습니다.
+      {% endif %}
+      <div class="match-highlights">
+        {% for key, value in p["match_result"]["dimensions"].items() if value[0] == "일치" %}
+          <span class="match-pill match-pill-good">✓ {{ dimension_labels.get(key, key) }} 일치</span>
+        {% endfor %}
+        {% for key, value in p["match_result"]["dimensions"].items() if value[0] == "확인 필요" %}
+          <span class="match-pill match-pill-review">? {{ dimension_labels.get(key, key) }} 확인 필요</span>
+        {% endfor %}
+        {% for key, value in p["match_result"]["dimensions"].items() if value[0] == "불일치" %}
+          <span class="match-pill match-pill-bad">! {{ dimension_labels.get(key, key) }} 불일치</span>
+        {% endfor %}
+      </div>
+      <details>
+        <summary>어떤 조건을 비교했는지 보기</summary>
+        <ul class="match-detail-list">
+          {% for key, value in p["match_result"]["dimensions"].items() %}
+            <li>
+              {% if value[0] == "일치" %}
+                <span class="match-pill match-pill-good">✓ 일치</span>
+              {% elif value[0] == "확인 필요" %}
+                <span class="match-pill match-pill-review">? 확인 필요</span>
+              {% elif value[0] == "불일치" %}
+                <span class="match-pill match-pill-bad">! 불일치</span>
+              {% else %}
+                <span class="match-pill">{{ value[0] }}</span>
+              {% endif %}
+              <strong>{{ dimension_labels.get(key, key) }}</strong>
+              <span class="match-detail-text">{{ value[1] }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </details>
+    </div>
+  {% endif %}
   <div style="margin-top:8px;"><a class="btn" href="/programs/{{ p['id'] }}">상세보기 →</a></div>
 </div>
 {% else %}
@@ -98,7 +239,7 @@
   {% if disabled %}
     <span class="btn" style="opacity:0.4; cursor:default;">{{ label }}</span>
   {% else %}
-    <a class="btn" href="/programs?q={{ keyword }}&status={{ status_filter }}&field={{ field_filter }}&source={{ source_filter }}&region={{ region_filter }}&page={{ target_page }}">{{ label }}</a>
+    <a class="btn" href="/programs?q={{ keyword }}&status={{ status_filter }}&field={{ field_filter }}&source={{ source_filter }}&region={{ region_filter }}&profile_id={{ profile_id }}&view={{ match_view }}&page={{ target_page }}">{{ label }}</a>
   {% endif %}
 {% endmacro %}
 <div style="display:flex; gap:6px; align-items:center; justify-content:center; margin-top:16px; flex-wrap:wrap;">
@@ -117,5 +258,8 @@
   {{ page_link(page + 1, "다음 →", disabled=(page >= total_pages)) }}
 </div>
 {% endif %}
+
+</section>
+</div>
 
 {% endblock %}

@@ -15,7 +15,7 @@
     }
     header a { color: #fff; text-decoration: none; font-size: 14px; }
     header .brand { font-weight: bold; font-size: 16px; margin-right: 12px; }
-    main { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+    main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 60px; }
     .card {
       background: #fff; border: 1px solid #e2e4e8; border-radius: 8px;
       padding: 16px; margin-bottom: 12px;
@@ -66,6 +66,40 @@
     form.filters button {
       padding: 6px 14px; border-radius: 6px; border: none; background: #1d4ed8; color: #fff;
       cursor: pointer;
+    }
+    .programs-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .company-panel { position: sticky; top: 16px; }
+    .company-panel h2 { font-size: 16px; margin: 0 0 8px; }
+    .company-panel label { display: block; font-size: 12px; color: #555; margin-top: 8px; }
+    .company-panel input, .company-panel select {
+      width: 100%; padding: 7px 8px; margin-top: 3px; border: 1px solid #cbd2d9;
+      border-radius: 6px; font-size: 13px;
+    }
+    .company-panel .panel-note { font-size: 11px; color: #777; line-height: 1.5; }
+    .match-summary { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee; }
+    .match-summary .badge { margin: 2px 0; }
+    .match-reason {
+      margin-top: 8px; padding: 8px 10px; border-radius: 6px; background: #f8fafc;
+      color: #374151; font-size: 12px; line-height: 1.55;
+    }
+    .match-reason strong { color: #1f2937; }
+    .match-reason details { margin-top: 5px; }
+    .match-reason summary { cursor: pointer; color: #1d4ed8; }
+    .match-reason ul { margin: 5px 0 0; padding-left: 18px; }
+    .match-highlights { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+    .match-pill {
+      display: inline-block; padding: 2px 7px; border-radius: 10px;
+      font-size: 11px; font-weight: 700;
+    }
+    .match-pill-good { background: #dcfce7; color: #166534; }
+    .match-pill-review { background: #fef3c7; color: #92400e; }
+    .match-pill-bad { background: #fee2e2; color: #991b1b; }
+    .match-detail-list { list-style: none; padding-left: 0 !important; }
+    .match-detail-list li { margin: 6px 0; }
+    .match-detail-text { display: block; margin: 2px 0 0 4px; color: #4b5563; }
+    @media (max-width: 800px) {
+      .programs-layout { grid-template-columns: 1fr; }
+      .company-panel { position: static; }
     }
   </style>
 </head>

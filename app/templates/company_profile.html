@@ -9,50 +9,62 @@
   방식으로 매칭 결과를 계산합니다.
 </p>
 
+{% set ep = edit_profile %}
 <div class="card">
-  <strong>새 회사 프로필 추가</strong>
-  <form class="profile-form" method="post" action="/company-profile" style="margin-top:10px;">
+  <strong>{{ "회사 프로필 수정" if ep else "새 회사 프로필 추가" }}</strong>
+  <form class="profile-form" method="post"
+        action="{{ ('/company-profile/' ~ ep['id'] ~ '/edit') if ep else '/company-profile' }}"
+        style="margin-top:10px;">
     <label>회사 이름(별칭)
-      <input type="text" name="name" placeholder="예: 우리 회사" required>
+      <input type="text" name="name" placeholder="예: 우리 회사" value="{{ ep['name'] if ep else '' }}" required>
     </label>
     <label>소재지
-      <input type="text" name="region" placeholder="예: 경기">
+      <input type="text" name="region" placeholder="예: 경기" value="{{ ep['region'] if ep else '' }}">
     </label>
     <label>업종
-      <input type="text" name="industry" placeholder="예: 제조업">
+      <input type="text" name="industry" placeholder="예: 제조업" value="{{ ep['industry'] if ep else '' }}">
     </label>
     <label>창업일
-      <input type="date" name="founded_date">
+      <input type="date" name="founded_date" value="{{ ep['founded_date'] if ep else '' }}">
     </label>
     <label>업력(년, 창업일 모를 때만)
-      <input type="number" name="business_age_years" min="0">
+      <input type="number" name="business_age_years" min="0" value="{{ ep['business_age_years'] if ep and ep['business_age_years'] is not none else '' }}">
     </label>
     <label>직원 수
-      <input type="number" name="employee_count" min="0">
+      <input type="number" name="employee_count" min="0" value="{{ ep['employee_count'] if ep and ep['employee_count'] is not none else '' }}">
     </label>
     <label>매출 구간
-      <input type="text" name="revenue_range" placeholder="예: 1억~10억">
+      <input type="text" name="revenue_range" placeholder="예: 1억~10억" value="{{ ep['revenue_range'] if ep else '' }}">
     </label>
     <label>중소기업·소상공인 여부
       <select name="company_type">
-        {% for opt in company_type_options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+        {% for opt in company_type_options %}
+          <option value="{{ opt }}" {% if ep and ep['company_type'] == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
       </select>
     </label>
     <label>수출 여부
       <select name="exports">
-        {% for opt in yes_no_options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+        {% for opt in yes_no_options %}
+          <option value="{{ opt }}" {% if ep and ep['exports'] == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
       </select>
     </label>
     <label>연구개발 여부
       <select name="rnd">
-        {% for opt in yes_no_options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+        {% for opt in yes_no_options %}
+          <option value="{{ opt }}" {% if ep and ep['rnd'] == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
       </select>
     </label>
     <label style="flex:1 1 100%;">필요한 지원 분야(쉼표로 구분)
-      <input type="text" name="desired_fields" placeholder="예: 소상공인, 디지털 전환, 수출">
+      <input type="text" name="desired_fields" placeholder="예: 소상공인, 디지털 전환, 수출" value="{{ ep['desired_fields'] if ep else '' }}">
     </label>
-    <div style="flex:1 1 100%; margin-top:6px;">
-      <button type="submit" class="btn" style="background:#1d4ed8; color:#fff; border-color:#1d4ed8;">저장</button>
+    <div style="flex:1 1 100%; margin-top:6px; display:flex; gap:8px;">
+      <button type="submit" class="btn" style="background:#1d4ed8; color:#fff; border-color:#1d4ed8;">
+        {{ "수정 저장" if ep else "저장" }}
+      </button>
+      {% if ep %}<a class="btn" href="/company-profile">취소</a>{% endif %}
     </div>
   </form>
 </div>
@@ -65,8 +77,13 @@
     {{ p["region"] or "소재지 미입력" }} · {{ p["industry"] or "업종 미입력" }} ·
     {{ p["company_type"] }} · 직원 {{ p["employee_count"] if p["employee_count"] is not none else "미입력" }}명
   </div>
-  <div style="margin-top:8px;">
+  <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
     <a class="btn" href="/company-profile/{{ p['id'] }}/match">이 회사로 매칭 결과 보기 →</a>
+    <a class="btn" href="/company-profile/{{ p['id'] }}/edit">수정</a>
+    <form method="post" action="/company-profile/{{ p['id'] }}/delete" style="margin:0;"
+          onsubmit="return confirm('이 프로필을 삭제할까요? 되돌릴 수 없습니다.');">
+      <button type="submit" class="btn" style="color:#b3261e; border-color:#f3aaa6;">삭제</button>
+    </form>
   </div>
 </div>
 {% else %}
