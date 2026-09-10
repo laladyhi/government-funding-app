@@ -51,6 +51,8 @@ INSERT INTO data_sources (source_key, display_name, homepage_url, announcement_p
 
   ('kstartup', '창업진흥원(K-Startup)', 'https://www.k-startup.go.kr/', 'https://www.k-startup.go.kr/web/main/mainSection0.do', 'API', '연동후보', 'KSTARTUP_API_KEY', '공공데이터포털에 지원사업공고 Open API 존재 확인(data.go.kr/data/15125364). 아직 키 미발급. docs/agency-coverage-survey.md 참고.', '2026-09-04'),
 
+  ('ntis', 'NTIS 국가R&D 과제검색', 'https://www.ntis.go.kr/', 'https://www.ntis.go.kr/rndopen/api/mng/apiMain.do', 'API', '연동후보', 'NTIS_API_KEY', '2025 매뉴얼 확인: REST XML public_project 엔드포인트, 승인키(apprvKey) 필요. 기업지원 공고와 R&D 과제는 성격이 다르므로 별도 출처로 관리.', '2026-09-10'),
+
   ('kosmes', '중소벤처기업진흥공단', 'https://www.kosmes.or.kr/', NULL, 'API', '연동후보', 'KOSMES_API_KEY', '자체 Open API 포털 존재 확인(kosmes.or.kr/opendata). 공고 게시판 URL은 미확인이라 비워둠 — 임의로 만들지 않음. docs/agency-coverage-survey.md 참고.', '2026-09-04'),
 
   ('kto', '한국관광공사', 'https://knto.or.kr/', 'https://touraz.kr/announcementList', '게시판', '링크만관리', NULL, '기업지원 공고는 별도 포털(투어라즈)에서 운영. 자체 API 미확인. docs/agency-coverage-survey.md 참고.', '2026-09-04'),

@@ -145,6 +145,11 @@
 <p style="color:#555; margin: 0 0 12px;">
   총 {{ total }}건 중 {{ range_start if total else 0 }}~{{ range_end }}번째 표시 ({{ page }}/{{ total_pages }}페이지)
 </p>
+{% if company_profile and match_view != 'all' %}
+<p class="panel-note" style="margin-top:-4px; margin-bottom:12px;">
+  맞춤 우선순위: 회사 조건 <strong>일치 항목이 많은 사업</strong> → 확인 필요 항목이 적은 사업 → 마감일
+</p>
+{% endif %}
 
 {% for p in programs %}
 <div class="card">

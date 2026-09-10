@@ -551,6 +551,11 @@ def program_list():
             priority_order.get(
                 (p.get("match_result") or {}).get("verdict"), 3
             ),
+            # 회사 조건 일치 수가 많을수록 위로, 확인 필요 항목이
+            # 적을수록 위로. 마감일은 같은 적합도일 때만 보조한다.
+            -(p.get("match_result") or {}).get("matched_count", 0),
+            (p.get("match_result") or {}).get("review_count", 99),
+            (p.get("match_result") or {}).get("mismatch_count", 99),
             *deadline_sort_key(p),
         ))
     else:
