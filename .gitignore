@@ -10,6 +10,7 @@
 
 # 운영 DB 및 백업 (실제 수집 데이터 포함 — 코드만 공개하고 DB는 각자 로컬에서 생성)
 app/data/*.sqlite3
+app/data/*.sqlite3-*
 app/data/backups/
 
 # 실제 API에서 받아온 원본/가공 데이터 (민감정보는 아니지만, 실제 수집

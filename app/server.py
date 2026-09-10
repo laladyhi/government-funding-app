@@ -663,4 +663,7 @@ def program_detail(program_id: int):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # 일반 사용자는 앱을 한 번만 실행해야 하므로 Flask 자동 재실행을 끈다.
+    # debug/reloader가 켜져 있으면 Python 프로세스가 두 개로 늘어나
+    # SQLite를 동시에 사용하면서 "database is locked"가 발생하기 쉽다.
+    app.run(debug=False, use_reloader=False)

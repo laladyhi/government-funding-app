@@ -47,17 +47,27 @@ def mask(value: str) -> str:
     return f"(길이 {len(value)}자, ****로 마스킹됨)" if value else "(비어있음)"
 
 
-def request_page(api_key: str, page: int, page_size: int) -> dict:
+def request_page(api_key: str, page: int, page_size: int, retries: int = 3) -> dict:
     # 공공데이터포털 Encoding 키는 이미 URL 인코딩되어 있으므로 그대로 붙인다.
     query = urllib.parse.urlencode({"page": page, "perPage": page_size, "returnType": "json"})
-    response = requests.get(f"{API_URL}?ServiceKey={api_key}&{query}", timeout=20)
-    response.raise_for_status()
-    data = response.json()
-    if not isinstance(data, dict):
-        raise ValueError("API 응답이 JSON 객체가 아닙니다.")
-    if data.get("resultCode") not in (None, "00", "0", 0):
-        raise ValueError(f"API 오류: {data.get('resultCode')} {data.get('resultMsg')}")
-    return data
+    url = f"{API_URL}?ServiceKey={api_key}&{query}"
+    last_error = None
+    for attempt in range(1, retries + 1):
+        try:
+            response = requests.get(url, timeout=20)
+            response.raise_for_status()
+            data = response.json()
+            if not isinstance(data, dict):
+                raise ValueError("API 응답이 JSON 객체가 아닙니다.")
+            if data.get("resultCode") not in (None, "00", "0", 0):
+                raise ValueError(f"API 오류: {data.get('resultCode')} {data.get('resultMsg')}")
+            return data
+        except (requests.RequestException, ValueError) as exc:
+            last_error = exc
+            if attempt < retries:
+                print(f"[정보] page {page} 요청 실패({attempt}/{retries}), 재시도합니다: {exc}")
+                time.sleep(2 * attempt)
+    raise last_error
 
 
 def extract_items(payload: dict) -> list:

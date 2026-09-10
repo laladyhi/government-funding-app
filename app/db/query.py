@@ -9,9 +9,12 @@ from migrate import DB_PATH  # noqa: E402
 
 
 def get_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    # 화면을 새로고침하는 동안 수집/가져오기 작업이 잠시 DB를 사용해도
+    # 즉시 실패하지 않고 최대 10초 동안 기다리도록 한다.
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
+    conn.execute("PRAGMA busy_timeout = 10000;")
     return conn
 
 

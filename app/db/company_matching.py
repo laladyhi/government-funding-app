@@ -286,20 +286,22 @@ def compute_overall_verdict(dimensions: dict):
 
 
 def match_company_to_program(conn, company: dict, program_row: dict,
-                             program_field_text: Optional[str] = None) -> dict:
+                             program_field_text: Optional[str] = None,
+                             classification_text: Optional[str] = None) -> dict:
     """program_row는 최소 id/title/source/source_item_id/status_computed +
     action_summary가 요구하는 컬럼(application_period_display 등)을 포함해야 함."""
     summary = build_action_summary(conn, program_row)
 
-    class_rows = conn.execute(
-        """
-        SELECT cn.display_name FROM program_classifications pc
-        JOIN classification_nodes cn ON cn.id = pc.node_id
-        WHERE pc.program_id = ?
-        """,
-        (program_row["id"],),
-    ).fetchall()
-    classification_text = " ".join(r["display_name"] for r in class_rows if r["display_name"])
+    if classification_text is None:
+        class_rows = conn.execute(
+            """
+            SELECT cn.display_name FROM program_classifications pc
+            JOIN classification_nodes cn ON cn.id = pc.node_id
+            WHERE pc.program_id = ?
+            """,
+            (program_row["id"],),
+        ).fetchall()
+        classification_text = " ".join(r["display_name"] for r in class_rows if r["display_name"])
     field_text = (
         program_field_text
         if program_field_text is not None
@@ -370,9 +372,29 @@ def match_company_to_all_programs(conn, company: dict) -> list:
         program_id: " ".join(_plain_text(value) for value in values if value)
         for program_id, values in field_text_by_program.items()
     }
+
+    # program_classifications을 프로그램별로 한 번씩 따로 조회하면 공고 수만큼
+    # 쿼리가 늘어난다(N+1). 전체를 한 번에 읽어 program_id별로 미리 묶어둔다.
+    classification_text_by_program = {}
+    for row in conn.execute(
+        """
+        SELECT pc.program_id, cn.display_name FROM program_classifications pc
+        JOIN classification_nodes cn ON cn.id = pc.node_id
+        """
+    ).fetchall():
+        classification_text_by_program.setdefault(row["program_id"], []).append(
+            row["display_name"]
+        )
+    classification_text_by_program = {
+        program_id: " ".join(name for name in names if name)
+        for program_id, names in classification_text_by_program.items()
+    }
+
     results = [
         match_company_to_program(
-            conn, company, row, field_text_by_program.get(row["id"], "")
+            conn, company, row,
+            field_text_by_program.get(row["id"], ""),
+            classification_text_by_program.get(row["id"], ""),
         )
         for row in rows
     ]
