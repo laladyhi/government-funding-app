@@ -21,22 +21,16 @@ collector/sample_kstartup_response.json
 collector/sample_public_benefits_response.json
 collector/sample_kocca_response.json
 collector/fixtures/*_real_*.json
-/T_OPD_ASBS_PBNS_UNITY.xml
-/T_OPD_ASBS_UNITY.xml
 
 # 실행 중 자동 생성되는 오류 로그 (URL, 응답코드 등 운영 정보 포함)
 collector/logs/*.jsonl
+collector/logs/*.log
+collector/logs/*.txt
 
-# 저작권이 있는 외부 기관 배포 문서(발급 가이드, API 명세서 PDF 등) — 재배포 범위 밖
-# 주의: [ ]는 gitignore에서 문자 클래스로 해석되므로 반드시 이스케이프해야
-# 폴더명 그대로("[가이드]...")를 리터럴로 매칭한다.
-/\[가이드\]*/
-/한국콘텐츠진흥원_지원사업_API_명세서.pdf
-# NTIS/KOSMES 테스트 페이지 저장본 — 인증키·로그인 사용자 정보가 포함될 수 있음
-/ntisOpenAPI.html
-/ntisOpenAPI_files/
-/KOSME _ 중소벤처기업진흥공단.html
-/KOSME _ 중소벤처기업진흥공단_files/
+# 실제 구동에 필요 없는 참고자료(발급 가이드, API 명세서 PDF/저장 웹페이지,
+# 샘플 XML 등) — 전부 이 폴더 하나에 모아두고 통째로 무시한다.
+# (저작권 있는 외부 기관 문서 재배포 방지 + 저장소를 코드 중심으로 유지)
+/reference/
 
 # PDF 도구가 페이지를 이미지로 렌더링하며 만든 임시 산출물(프로젝트 파일 아님)
 /tmp/
