@@ -1,0 +1,4 @@
+# Windows 배치 파일은 CRLF가 아니면 한글 echo가 포함된 스크립트가
+# 더블클릭 실행 시 깨진 명령으로 잘못 해석될 수 있다. 항상 CRLF로 유지한다.
+*.cmd text eol=crlf
+*.bat text eol=crlf
