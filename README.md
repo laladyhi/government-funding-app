@@ -30,16 +30,18 @@ Open API를 통해 공개된 공고 데이터를 그대로 수집·정리해서 
 
 | 기관 | 방식 | 현재 상태 |
 |---|---|---|
-| 기업마당 (bizinfo.go.kr) | Open API | 연동 완료, 운영 DB 1,552건 적재(전체 수집) |
-| 창업진흥원 (K-Startup) | Open API (data.go.kr) | 연동 완료, 운영 DB 5건 적재 |
-| 정부24 공공서비스(혜택) | Open API (odcloud.kr) | 연동 완료, 운영 DB 5건 적재 |
-| 한국콘텐츠진흥원 (KOCCA) | Open API | 연동 완료, 운영 DB 4건 적재 |
-| e나라도움·보조금24 (국고보조금) | Open API (data.go.kr) | 연동 완료, 운영 DB 738건 적재(전체 197,936건 중 공고명·기간이 있는 자료만 선별) |
-| 중소벤처기업진흥공단 (KOSMES) | Open API 예정 | 연동 후보 (요청 명세 미확인) |
+| 기업마당 (bizinfo.go.kr) | Open API | 연동 완료, 운영 DB 1,650건 적재(전체 수집, 매일 09:30·15:30 자동 갱신) |
+| 창업진흥원 (K-Startup) | Open API (data.go.kr) | 연동 완료, 운영 DB 5건 적재(매일 09:30·15:30 자동 갱신) |
+| 정부24 공공서비스(혜택) | Open API (odcloud.kr) | 연동 완료, 운영 DB 5건 적재(매일 09:30·15:30 자동 갱신) |
+| 한국콘텐츠진흥원 (KOCCA) | Open API | 연동 완료, 운영 DB 4건 적재(매일 09:30·15:30 자동 갱신) |
+| e나라도움·보조금24 (국고보조금) | Open API (data.go.kr) | 연동 완료, 운영 DB 738건 적재(전체 197,936건 중 공고명·기간이 있는 자료만 선별, 매일 09:30·15:30 자동 갱신) |
+| 중소벤처기업진흥공단 (KOSMES) | Open API | 연동 완료, 운영 DB 149건 적재(자동 갱신 대상 아님 — `KOSMES_공고_가져와서_앱에_반영.cmd`로 수동 갱신) |
+| NTIS 국가R&D 과제검색 | Open API | 연동 준비 완료, 아직 미수집 — 이 컴퓨터의 방화벽/보안 프로그램이 NTIS 서버로의 연결을 막고 있어([WinError 10013]) 원인 해결 필요(`NTIS_검색하고_앱에_반영.cmd`로 수동 갱신) |
 | 국민체육진흥공단 (KSPO) | Open API 예정 | 연동 후보 (키 발급 전) |
 | 한국관광공사 / 영화진흥위원회 | 게시판 | 링크만 관리 (자동 수집 없음) |
 
-**운영 DB 총 2,304건** (2026-09-09 기준)
+**운영 DB 총 2,551건** (2026-09-10 15:50 기준 — bizinfo/K-Startup/정부24혜택/KOCCA/e나라도움은
+자동 갱신 작업이 진행 중이라 숫자가 계속 바뀔 수 있음)
 
 각 출처의 상세 조사 근거와 확인일은 [docs/data-source-decision.md](docs/data-source-decision.md),
 [docs/agency-coverage-survey.md](docs/agency-coverage-survey.md) 문서에 있습니다.
